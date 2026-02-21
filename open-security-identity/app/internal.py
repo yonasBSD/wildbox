@@ -13,7 +13,12 @@ from .database import get_db
 from .models import User, Team, TeamMembership, ApiKey, Subscription
 from .schemas import AuthorizationResponse
 from .auth import authenticate_api_key, verify_access_token
+from .config import settings
 from datetime import datetime
+import hmac
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -49,12 +54,16 @@ async def authorize_request(
     Returns:
         Authorization response with user info, permissions, and rate limits
     """
-    # Debug logging at endpoint entry
-    print(f"[AUTH-DEBUG] ========== AUTHORIZE REQUEST ==========")
-    print(f"[AUTH-DEBUG] Token type: {request_data.token_type}")
-    print(f"[AUTH-DEBUG] Token preview: {request_data.token[:30] if request_data.token else 'NONE'}...")
-    
-    # TODO: Validate x_gateway_secret in production
+    # Validate gateway secret: only the gateway should call this endpoint
+    if settings.gateway_internal_secret:
+        if not x_gateway_secret or not hmac.compare_digest(
+            x_gateway_secret, settings.gateway_internal_secret
+        ):
+            logger.warning("Unauthorized /authorize call: invalid or missing gateway secret")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid gateway secret"
+            )
     
     try:
         if request_data.token_type == "bearer":
@@ -113,10 +122,6 @@ async def authorize_request(
             from .auth import hash_api_key
             hashed_key = hash_api_key(request_data.token)
             
-            # Debug logging
-            print(f"[AUTH-DEBUG] Looking for API key with hash: {hashed_key[:20]}...")
-            print(f"[AUTH-DEBUG] Full token received: {request_data.token[:30]}...")
-            
             result = await db.execute(
                 select(ApiKey, User, Team, TeamMembership, Subscription)
                 .join(User, ApiKey.user_id == User.id)
@@ -133,16 +138,12 @@ async def authorize_request(
             )
             
             row = result.first()
-            print(f"[AUTH-DEBUG] Query result exists: {row is not None}")
-            
+
             if not row:
-                print(f"[AUTH-DEBUG] API key NOT FOUND in database")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid or inactive API key"
                 )
-            
-            print(f"[AUTH-DEBUG] API key FOUND! User ID: {row[1].id if len(row) > 1 else 'N/A'}")
             
             api_key_obj, user, team, membership, subscription = row
             
@@ -180,7 +181,7 @@ async def authorize_request(
     except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Authorization failed: {str(e)}"
+            detail="Authorization failed"
         )
 
 

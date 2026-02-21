@@ -143,7 +143,7 @@ async def health_check():
         logger.error(f"Health check failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Service unhealthy: {str(e)}"
+            detail="Service health check failed"
         )
 
 
@@ -160,7 +160,7 @@ async def list_playbooks():
         logger.error(f"Failed to list playbooks: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list playbooks: {str(e)}"
+            detail="Failed to list playbooks"
         )
 
 
@@ -209,7 +209,7 @@ async def execute_playbook(
         logger.error(f"Failed to execute playbook {playbook_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to execute playbook: {str(e)}"
+            detail="Failed to execute playbook"
         )
 
 
@@ -233,7 +233,7 @@ async def get_execution_status(run_id: str):
         logger.error(f"Failed to get execution status for {run_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get execution status: {str(e)}"
+            detail="Failed to get execution status"
         )
 
 
@@ -251,7 +251,7 @@ async def reload_playbooks():
         logger.error(f"Failed to reload playbooks: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to reload playbooks: {str(e)}"
+            detail="Failed to reload playbooks"
         )
 
 
@@ -268,7 +268,7 @@ async def list_connectors():
         logger.error(f"Failed to list connectors: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list connectors: {str(e)}"
+            detail="Failed to list connectors"
         )
 
 
@@ -308,7 +308,7 @@ async def cancel_execution(run_id: str):
         logger.error(f"Failed to cancel execution {run_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to cancel execution: {str(e)}"
+            detail="Failed to cancel execution"
         )
 
 

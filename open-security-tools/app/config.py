@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     log_format: str = Field(default="json", description="Log format: json or text")
     
     # CORS settings
-    cors_origins: Union[List[str], str] = Field(default=["*"], description="Allowed CORS origins")
+    cors_origins: Union[List[str], str] = Field(default=["http://localhost:3000"], description="Allowed CORS origins")
     cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
     
     # Rate limiting

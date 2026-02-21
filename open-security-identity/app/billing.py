@@ -54,16 +54,16 @@ class StripeBillingService:
                 }
             )
             return customer.id
-        except stripe.error.InvalidRequestError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid request to Stripe: {str(e)}")
-        except stripe.error.AuthenticationError as e:
-            raise HTTPException(status_code=500, detail="Stripe authentication failed")
-        except stripe.error.APIConnectionError as e:
-            raise HTTPException(status_code=503, detail="Unable to connect to Stripe")
-        except stripe.error.StripeError as e:
-            raise HTTPException(status_code=500, detail=f"Stripe error: {str(e)}")
-        except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
-            raise HTTPException(status_code=500, detail=f"Unexpected error creating customer: {str(e)}")
+        except stripe.error.InvalidRequestError:
+            raise HTTPException(status_code=400, detail="Invalid billing request")
+        except stripe.error.AuthenticationError:
+            raise HTTPException(status_code=500, detail="Billing service configuration error")
+        except stripe.error.APIConnectionError:
+            raise HTTPException(status_code=503, detail="Billing service temporarily unavailable")
+        except stripe.error.StripeError:
+            raise HTTPException(status_code=500, detail="Billing operation failed")
+        except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError):
+            raise HTTPException(status_code=500, detail="Unexpected billing error")
     
     async def create_checkout_session(
         self, 
@@ -115,8 +115,8 @@ class StripeBillingService:
             
             return session.url
             
-        except stripe.error.StripeError as e:
-            raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+        except stripe.error.StripeError:
+            raise HTTPException(status_code=400, detail="Billing operation failed")
     
     async def create_customer_portal_session(self, team: Team, return_url: str) -> str:
         """
@@ -143,8 +143,8 @@ class StripeBillingService:
             
             return session.url
             
-        except stripe.error.StripeError as e:
-            raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+        except stripe.error.StripeError:
+            raise HTTPException(status_code=400, detail="Billing operation failed")
     
     async def report_usage(self, subscription_item_id: str, quantity: int) -> None:
         """
@@ -160,8 +160,8 @@ class StripeBillingService:
                 quantity=quantity,
                 action='increment',  # or 'set' for absolute values
             )
-        except stripe.error.StripeError as e:
-            raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+        except stripe.error.StripeError:
+            raise HTTPException(status_code=400, detail="Billing operation failed")
     
     def verify_webhook_signature(self, payload: bytes, signature: str) -> Dict[str, Any]:
         """

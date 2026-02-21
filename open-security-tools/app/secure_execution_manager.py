@@ -247,12 +247,22 @@ class SecureToolExecutionManager:
             'python3', str(script_file)
         ]
         
-        env = os.environ.copy()
-        env.update({
+        # SECURITY: Build a minimal environment for the subprocess.
+        # NEVER use os.environ.copy() — it leaks secrets like DATABASE_URL,
+        # JWT_SECRET_KEY, STRIPE_SECRET_KEY, OPENAI_API_KEY, etc. to tools.
+        env = {
+            # Required for Python to function
+            'PATH': os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin'),
+            'HOME': temp_dir,
+            'LANG': os.environ.get('LANG', 'C.UTF-8'),
+            'LC_ALL': os.environ.get('LC_ALL', 'C.UTF-8'),
+            # Required for tool execution
             'PYTHONPATH': str(Path(__file__).parent.parent),
             'WILDBOX_ISOLATION_MODE': 'true',
-            'WILDBOX_TEMP_DIR': temp_dir
-        })
+            'WILDBOX_TEMP_DIR': temp_dir,
+            # Prevent Python from writing .pyc files in temp dir
+            'PYTHONDONTWRITEBYTECODE': '1',
+        }
         
         security_violations = []
         
@@ -373,8 +383,9 @@ def main():
         error_result = {{
             "error": str(e),
             "error_type": type(e).__name__,
-            "traceback": traceback.format_exc()
         }}
+        # NOTE: traceback intentionally excluded from output to prevent
+        # leaking internal file paths, library versions, and code structure.
         
         try:
             with open('{output_file}', 'w') as f:

@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # API Configuration
     api_v1_prefix: str = "/api/v1"
     internal_api_prefix: str = "/internal"
+
+    # Gateway secret for service-to-service authentication
+    gateway_internal_secret: Optional[str] = Field(None, description="Shared secret for gateway-to-identity communication")
     
     # CORS - SECURITY: Restrict origins in production
     cors_origins: list[str] = ["http://localhost:3000", "https://wildbox.local", "https://dashboard.wildbox.local"]

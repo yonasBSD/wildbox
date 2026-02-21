@@ -266,19 +266,29 @@ class LogForwarder:
             return
         
         log_name = source['log_name']
+
+        # SECURITY: Validate log_name to prevent command injection
+        import re
+        if not re.match(r'^[A-Za-z][A-Za-z0-9 _-]{0,63}$', log_name):
+            logger.error(f"Invalid Windows Event Log name rejected: {log_name!r}")
+            return
+
         logger.info(f"Starting Windows Event Log monitoring: {log_name}")
-        
+
         # This would require Windows-specific implementation
         # For now, we'll use a placeholder
         while self.running:
             try:
                 # PowerShell command to get latest events
+                # log_name is validated above — pass as a single argument to prevent injection
+                ps_command = f'Get-EventLog -LogName "{log_name}" -Newest 10 | ConvertTo-Json'
                 cmd = [
                     'powershell',
-                    '-Command',
-                    'Get-EventLog -LogName', log_name, '-Newest', '10', '|', 'ConvertTo-Json'
+                    '-NoProfile',
+                    '-NonInteractive',
+                    '-Command', ps_command
                 ]
-                
+
                 result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
                 
                 if result.returncode == 0 and result.stdout:

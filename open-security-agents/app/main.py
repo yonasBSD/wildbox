@@ -275,6 +275,13 @@ async def analyze_ioc(
             settings.task_result_expires,
             celery_task.id
         )
+
+        # Store task owner for authorization checks
+        redis_client.setex(
+            f"task:{task_id}:user_id",
+            settings.task_result_expires,
+            str(user.user_id)
+        )
         
         logger.info(f"Started analysis task {task_id} for IOC {request.ioc.type}:{request.ioc.value}")
         
@@ -374,9 +381,17 @@ async def get_analysis_result(task_id: str):
 
 
 @app.delete("/v1/analyze/{task_id}")
-async def cancel_analysis(task_id: str):
-    """Cancel a pending or running analysis task"""
+async def cancel_analysis(task_id: str, user: GatewayUser = Depends(get_current_user)):
+    """Cancel a pending or running analysis task. Requires authentication."""
     try:
+        # Verify the task belongs to the requesting user
+        task_owner = redis_client.get(f"task:{task_id}:user_id")
+        if task_owner and task_owner.decode() != str(user.user_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only cancel your own tasks"
+            )
+
         # Get Celery task ID
         celery_task_id = redis_client.get(f"task:{task_id}:celery_id")
         if not celery_task_id:

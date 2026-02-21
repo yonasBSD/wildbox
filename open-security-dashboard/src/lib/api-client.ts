@@ -29,32 +29,24 @@ class ApiClient {
     // Request interceptor - add auth token
     this.client.interceptors.request.use(
       (config) => {
-        console.log('🔍 Outgoing API Request:')
-        console.log('  - Base URL:', this.baseURL)
-        console.log('  - Endpoint:', config.url)
-        console.log('  - Method:', config.method?.toUpperCase())
-        
         // Check if this is a request to the Guardian service (still uses legacy API key auth)
         const isGuardianAPI = this.baseURL.includes('/api/v1/guardian') || this.baseURL.includes('localhost:8013') || this.baseURL.includes(':8013')
         
         if (isGuardianAPI) {
           // Use API key for Guardian service (legacy auth)
-          const guardianApiKey = 'wbx-guardian-6fb6e69a0d7c62d6931e6bdfe7754263' // From Guardian database
-          config.headers['X-API-Key'] = guardianApiKey
-          console.log('  - Auth Type: API Key (Guardian - Legacy)')
+          const guardianApiKey = process.env.NEXT_PUBLIC_GUARDIAN_API_KEY
+          if (guardianApiKey) {
+            config.headers['X-API-Key'] = guardianApiKey
+          }
         } else {
           // Use JWT token for all other services (identity, data, tools, responder, etc.)
           // Gateway validates the JWT and forwards requests with X-Wildbox-* headers
           const token = Cookies.get('auth_token') || localStorage.getItem('auth_token')
           if (token) {
             config.headers.Authorization = `Bearer ${token}`
-            console.log('  - Auth Type: JWT Token (Gateway)')
-          } else {
-            console.log('  - Auth Type: None (no token found)')
           }
         }
         
-        console.log('  - Final Headers:', config.headers)
         return config
       },
       (error) => {
@@ -76,24 +68,8 @@ class ApiClient {
           apiError.message = (error.response.data as any)?.message || error.message || 'API Error'
           apiError.details = error.response.data
 
-          // Enhanced debugging for all errors
-          console.log('🔍 API Error Details:')
-          console.log('  - Base URL:', this.baseURL)
-          console.log('  - Endpoint:', error.config?.url)
-          console.log('  - Method:', error.config?.method?.toUpperCase())
-          console.log('  - Status:', error.response.status)
-          console.log('  - Response:', error.response.data)
-          console.log('  - Headers sent:', error.config?.headers)
-
           // Handle auth errors
           if (error.response.status === 401) {
-            console.error('🚨 401 UNAUTHORIZED ERROR DETECTED!')
-            console.error('🚨 Service Base URL:', this.baseURL)
-            console.error('🚨 Failed Endpoint:', error.config?.url)
-            console.error('🚨 Request Headers:', error.config?.headers)
-            console.error('🚨 Response Data:', error.response.data)
-            console.error('🚨 Full Request Config:', error.config)
-            
             // Only trigger auth error handling for non-admin pages and if not already on auth page
             if (typeof window !== 'undefined' && 
                 !window.location.pathname.includes('/admin') &&
@@ -114,30 +90,23 @@ class ApiClient {
   }
 
   private handleAuthError() {
-    console.error('🚨 AUTH ERROR: 401 received, clearing tokens and redirecting')
-    console.error('🚨 Current URL:', window.location.href)
-    console.error('🚨 Request that failed - Service:', this.baseURL)
-    console.error('🚨 Stack trace:', new Error().stack)
-    
     // Check if this is a gateway request that might need different handling
     const isGatewayRequest = this.baseURL.includes('localhost:80') || this.baseURL.includes(':80')
-    
+
     // Don't immediately redirect for gateway requests - they might need special auth handling
     if (isGatewayRequest) {
-      console.warn('🚨 Gateway auth error - not auto-redirecting, may need token refresh')
       return
     }
-    
+
     // Clear auth tokens only for non-gateway auth errors
     Cookies.remove('auth_token')
     localStorage.removeItem('auth_token')
     localStorage.removeItem('user')
     
     // Redirect to login if we're not already there and not on an admin page
-    if (typeof window !== 'undefined' && 
+    if (typeof window !== 'undefined' &&
         !window.location.pathname.includes('/auth') &&
         !window.location.pathname.includes('/admin')) {
-      console.error('🚨 Redirecting to login due to auth error from service:', this.baseURL)
       window.location.href = '/'
     }
   }

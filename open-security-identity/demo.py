@@ -25,9 +25,9 @@ async def demo_auth_functions():
     # API key generation
     full_key, prefix, hashed_key = generate_api_key()
     print(f"\nGenerated API Key:")
-    print(f"  Full key: {full_key}")
     print(f"  Prefix: {prefix}")
     print(f"  Hash: {hashed_key[:20]}...")
+    print(f"  (Full key omitted for security)")
 
 
 def demo_models():

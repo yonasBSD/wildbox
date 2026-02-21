@@ -323,12 +323,16 @@ end
 
 -- Set authentication headers for backend services
 local function set_auth_headers(auth_data)
+    -- SECURITY: Strip ALL client-supplied auth headers BEFORE setting validated ones.
+    -- This prevents identity spoofing via forged X-Wildbox-* headers.
+    utils.clean_request_headers()
+
     ngx.var.wildbox_user_id = auth_data.user_id or ""
     ngx.var.wildbox_team_id = auth_data.team_id or ""
     ngx.var.wildbox_plan = auth_data.plan or "free"
     ngx.var.wildbox_role = auth_data.role or "user"
-    
-    -- Set headers for backend services
+
+    -- Set headers for backend services (from validated auth_data only)
     ngx.req.set_header("X-Wildbox-User-ID", auth_data.user_id)
     ngx.req.set_header("X-Wildbox-Team-ID", auth_data.team_id)
     ngx.req.set_header("X-Wildbox-Plan", auth_data.plan)

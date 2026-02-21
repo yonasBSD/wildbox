@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     wildbox_responder_url: str = "http://localhost:8018"
     
     # Security
-    internal_api_key: str = "wildbox-internal-key-change-in-production"
+    internal_api_key: str = Field(default="", env="INTERNAL_API_KEY")  # REQUIRED: set via env var
     
     # Analysis Settings
     max_analysis_time_minutes: int = 10

@@ -125,31 +125,99 @@ class InputSanitizer:
 
     @classmethod
     def validate_url(cls, url: str) -> str:
-        """Validate and sanitize URL inputs."""
+        """Validate and sanitize URL inputs. Blocks SSRF attempts."""
         if not isinstance(url, str):
             raise ValueError("URL must be a string")
-        
+
         url = url.strip()
-        
-        # Basic URL validation
-        if not re.match(r'^https?://', url, re.IGNORECASE):
-            raise ValueError("URL must start with http:// or https://")
-        
-        # Block dangerous URLs
-        dangerous_hosts = [
-            'localhost', '127.0.0.1', '0.0.0.0', '::1',
-            '169.254.', '10.', '172.16.', '192.168.'
-        ]
-        
-        for host in dangerous_hosts:
-            if host in url:
-                raise ValueError("URL points to restricted network range")
-        
+
         # Length check
         if len(url) > 2048:
             raise ValueError("URL too long")
-        
+
+        # Only allow http/https schemes
+        if not re.match(r'^https?://', url, re.IGNORECASE):
+            raise ValueError("URL must start with http:// or https://")
+
+        # Parse the URL to extract the hostname
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        if not hostname:
+            raise ValueError("URL must contain a valid hostname")
+
+        # Block known dangerous hostnames
+        blocked_hostnames = {
+            'localhost', 'metadata.google.internal',
+            'metadata.internal', 'instance-data',
+        }
+        if hostname.lower() in blocked_hostnames:
+            raise ValueError(f"URL hostname '{hostname}' is blocked (SSRF protection)")
+
+        # Resolve hostname to IP and validate
+        cls._validate_ip_not_private(hostname)
+
         return url
+
+    @classmethod
+    def validate_ip(cls, ip_str: str) -> str:
+        """Validate an IP address. Blocks private/internal ranges."""
+        if not isinstance(ip_str, str):
+            raise ValueError("IP must be a string")
+
+        ip_str = ip_str.strip()
+
+        # Strip CIDR notation for validation (but allow it in output)
+        ip_part = ip_str.split('/')[0]
+        cls._validate_ip_not_private(ip_part)
+        return ip_str
+
+    @classmethod
+    def _validate_ip_not_private(cls, host: str) -> None:
+        """Check that a host (IP or hostname) does not resolve to a private IP."""
+        import ipaddress
+        import socket
+
+        try:
+            addr = ipaddress.ip_address(host)
+        except ValueError:
+            # It's a hostname, try to resolve it
+            try:
+                resolved = socket.getaddrinfo(host, None, socket.AF_UNSPEC)
+                for family, _type, _proto, _canonname, sockaddr in resolved:
+                    addr = ipaddress.ip_address(sockaddr[0])
+                    if cls._is_blocked_ip(addr):
+                        raise ValueError(
+                            f"Hostname '{host}' resolves to blocked IP {addr} (SSRF protection)"
+                        )
+                return
+            except socket.gaierror:
+                # Cannot resolve — allow (external DNS may not be reachable at validation time)
+                return
+
+        if cls._is_blocked_ip(addr):
+            raise ValueError(f"IP address {addr} is in a blocked range (SSRF protection)")
+
+    @staticmethod
+    def _is_blocked_ip(addr) -> bool:
+        """Return True if the IP address is private, loopback, link-local, or cloud metadata."""
+        import ipaddress
+        # Cloud metadata endpoints
+        CLOUD_METADATA_IPS = {
+            ipaddress.ip_address('169.254.169.254'),  # AWS/GCP/Azure metadata
+            ipaddress.ip_address('fd00::c2b6:a9ff:fe52:2ea5'),  # Azure IPv6 metadata
+        }
+        if addr in CLOUD_METADATA_IPS:
+            return True
+        return (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_reserved
+            or addr.is_multicast
+            or addr.is_unspecified
+        )
 
     @classmethod
     def validate_filename(cls, filename: str) -> str:

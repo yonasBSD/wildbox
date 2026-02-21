@@ -161,7 +161,7 @@ def register_tool_endpoint(app, tool_name: str, tool_module: Any):
             logger.error(f"Input validation failed for {tool_name}: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Input validation failed: {str(e)}"
+                detail="Input validation failed"
             )
         
         logger.info(f"Executing tool: {tool_name}", extra={
@@ -206,12 +206,12 @@ def register_tool_endpoint(app, tool_name: str, tool_module: Any):
             elif execution_result.status.value == "timeout":
                 raise HTTPException(
                     status_code=status.HTTP_408_REQUEST_TIMEOUT,
-                    detail=f"Tool execution timed out: {execution_result.error}"
+                    detail="Tool execution timed out"
                 )
             else:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Tool execution failed: {execution_result.error}"
+                    detail="Tool execution failed"
                 )
                 
         except HTTPException:
@@ -224,7 +224,7 @@ def register_tool_endpoint(app, tool_name: str, tool_module: Any):
             })
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Tool execution failed: {str(e)}"
+                detail="Tool execution failed"
             )
     
     # Add the endpoint to the router

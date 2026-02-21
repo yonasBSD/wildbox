@@ -27,7 +27,7 @@ LOGS_DIR.mkdir(exist_ok=True)
 @dataclass
 class DatabaseConfig:
     """Database configuration"""
-    url: str = os.getenv("DATABASE_URL", "postgresql://postgres:SecureWildboxDB2024!@postgres:5432/data")
+    url: str = os.getenv("DATABASE_URL", "")  # REQUIRED: set via DATABASE_URL env var
     pool_size: int = int(os.getenv("DB_POOL_SIZE", "20"))
     max_overflow: int = int(os.getenv("DB_POOL_OVERFLOW", "10"))
     pool_timeout: int = int(os.getenv("DB_POOL_TIMEOUT", "30"))
@@ -100,7 +100,7 @@ class StorageConfig:
 @dataclass
 class SecurityConfig:
     """Security configuration"""
-    secret_key: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+    secret_key: str = os.getenv("SECRET_KEY", "")  # REQUIRED: set via SECRET_KEY env var
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_expiration: int = int(os.getenv("JWT_EXPIRATION", "3600"))  # 1 hour
     
@@ -173,8 +173,10 @@ class AppConfig:
         
         # Validate critical settings in production
         if self.environment == "production":
-            if self.security.secret_key == "dev-secret-key-change-in-production":
-                raise ValueError("SECRET_KEY must be changed in production")
+            if not self.security.secret_key:
+                raise ValueError("SECRET_KEY must be set in production")
+            if not self.database.url:
+                raise ValueError("DATABASE_URL must be set in production")
             
             if self.debug:
                 raise ValueError("DEBUG must be False in production")

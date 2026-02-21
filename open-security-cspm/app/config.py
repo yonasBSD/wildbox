@@ -39,12 +39,12 @@ class Settings(BaseSettings):
     log_format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
     # Security configuration
-    secret_key: str = Field(default="INSECURE-DEFAULT-SECRET-KEY-CHANGE-THIS", env="SECRET_KEY")
+    secret_key: str = Field(default="", env="SECRET_KEY")  # REQUIRED: set via SECRET_KEY env var
     access_token_expire_minutes: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     
     # API configuration
     api_v1_prefix: str = "/api/v1"
-    cors_origins: List[str] = Field(default=["*"], env="CORS_ORIGINS")
+    cors_origins: List[str] = Field(default=["http://localhost:3000"], env="CORS_ORIGINS")
     cors_allow_credentials: bool = True
     cors_allow_methods: List[str] = ["*"]
     cors_allow_headers: List[str] = ["*"]

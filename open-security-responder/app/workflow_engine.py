@@ -10,7 +10,8 @@ import logging
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, Optional, List
-from jinja2 import Environment, DictLoader, TemplateSyntaxError, UndefinedError
+from jinja2 import DictLoader, TemplateSyntaxError, UndefinedError
+from jinja2.sandbox import SandboxedEnvironment, SecurityError
 import redis
 import dramatiq
 from dramatiq.brokers.redis import RedisBroker
@@ -37,12 +38,14 @@ broker = RedisBroker(url=settings.redis_url)
 broker.add_middleware(Results(backend=result_backend))
 dramatiq.set_broker(broker)
 
-# Jinja2 environment for template rendering
+# Jinja2 sandboxed environment for template rendering
+# SECURITY: SandboxedEnvironment prevents access to dangerous attributes
+# like __class__, __subclasses__, __import__, etc. that could lead to RCE.
 from jinja2 import StrictUndefined
 
-jinja_env = Environment(
+jinja_env = SandboxedEnvironment(
     loader=DictLoader({}),
-    autoescape=False,
+    autoescape=True,
     undefined=StrictUndefined
 )
 
@@ -156,7 +159,15 @@ class WorkflowEngine:
         """
         if not isinstance(template_str, str):
             return template_str
-        
+
+        # SECURITY: Reject templates containing dangerous patterns
+        template_lower = template_str.lower()
+        for pattern in self._DANGEROUS_PATTERNS:
+            if pattern.lower() in template_lower:
+                raise TemplateRenderError(
+                    f"Template contains blocked pattern: '{pattern}'"
+                )
+
         try:
             template = jinja_env.from_string(template_str)
             rendered = template.render(**context)
@@ -170,6 +181,8 @@ class WorkflowEngine:
             
             return rendered
             
+        except SecurityError as e:
+            raise TemplateRenderError(f"Template blocked by sandbox: {str(e)}")
         except (TemplateSyntaxError, UndefinedError) as e:
             raise TemplateRenderError(f"Template rendering failed: {str(e)}")
     
@@ -204,25 +217,45 @@ class WorkflowEngine:
         
         return rendered_input
     
+    # Patterns that must NEVER appear in playbook conditions or templates
+    _DANGEROUS_PATTERNS = [
+        '__class__', '__subclasses__', '__import__', '__globals__',
+        '__builtins__', '__mro__', '__bases__', '__init__',
+        'os.system', 'os.popen', 'subprocess', 'eval(', 'exec(',
+        'compile(', 'open(', 'getattr(', 'setattr(',
+    ]
+
     def evaluate_condition(self, condition: str, context: Dict[str, Any]) -> bool:
         """
         Evaluate a Jinja2 condition expression
-        
+
         Args:
             condition: Jinja2 condition expression
             context: Template rendering context
-            
+
         Returns:
             Boolean result of condition evaluation
         """
         if not condition:
             return True
-        
+
+        # SECURITY: Reject conditions containing dangerous patterns
+        condition_lower = condition.lower()
+        for pattern in self._DANGEROUS_PATTERNS:
+            if pattern.lower() in condition_lower:
+                logger.warning(
+                    f"Blocked dangerous pattern '{pattern}' in playbook condition: {condition[:100]}"
+                )
+                return False
+
         try:
             # Wrap condition in an if statement to get boolean result
             template_str = f"{{% if {condition} %}}true{{% else %}}false{{% endif %}}"
             result = self.render_template(template_str, context)
             return result == "true"
+        except (TemplateSyntaxError, UndefinedError, SecurityError) as e:
+            logger.error(f"Condition evaluation failed (template error): {e}")
+            return False
         except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
             logger.error(f"Condition evaluation failed: {e}")
             return False

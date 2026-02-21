@@ -20,7 +20,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =============================================================================
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production')
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable must be set")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
@@ -108,10 +110,11 @@ ASGI_APPLICATION = 'guardian.asgi.application'
 # DATABASE CONFIGURATION
 # =============================================================================
 
+_database_url = os.getenv('DATABASE_URL')
+if not _database_url:
+    raise ValueError("DATABASE_URL environment variable must be set")
 DATABASES = {
-    'default': dj_database_url.parse(
-        os.getenv('DATABASE_URL', 'postgresql://guardian:guardian@localhost:5432/guardian')
-    )
+    'default': dj_database_url.parse(_database_url)
 }
 
 # =============================================================================

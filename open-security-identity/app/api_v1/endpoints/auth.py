@@ -2,8 +2,9 @@
 Authentication endpoints.
 """
 
+import logging
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -13,11 +14,13 @@ from ...database import get_db
 from ...models import User, Team, TeamMembership, Subscription, TeamRole, SubscriptionPlan, SubscriptionStatus
 from ...schemas import UserCreate, UserLogin, Token
 from ...auth import (
-    verify_password, get_password_hash, create_access_token, 
+    verify_password, get_password_hash, create_access_token,
     get_current_active_user
 )
 from ...billing import billing_service
 from ...config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -56,8 +59,7 @@ async def register_user(
         user.stripe_customer_id = stripe_customer_id
     except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
         # Log error but don't fail registration - user can still use free tier
-        print(f"Warning: Failed to create Stripe customer for {user_data.email}: {e}")
-        # Consider logging to proper logging system in production
+        logger.warning(f"Failed to create Stripe customer for {user_data.email}: {e}")
     
     # Create team with user as owner
     team = Team(
@@ -117,13 +119,15 @@ async def _authenticate_user(email: str, password: str, db: AsyncSession) -> dic
     user = result.scalar_one_or_none()
     
     if not user or not verify_password(password, user.hashed_password):
+        logger.warning(f"AUTH_FAILURE: Failed login attempt for email={email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
+        logger.warning(f"AUTH_FAILURE: Inactive user login attempt for email={email}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user"
@@ -156,9 +160,11 @@ async def _authenticate_user(email: str, password: str, db: AsyncSession) -> dic
         expires_delta=access_token_expires
     )
     
+    logger.info(f"AUTH_SUCCESS: User {user.email} logged in (team={primary_membership.team_id})")
+
     return {
         "access_token": access_token,
-        "token_type": "bearer", 
+        "token_type": "bearer",
         "expires_in": settings.jwt_access_token_expire_minutes * 60
     }
 

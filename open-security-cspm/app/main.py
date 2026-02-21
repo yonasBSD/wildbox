@@ -217,7 +217,7 @@ async def start_scan(
         logger.error(f"Invalid scan configuration: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid scan configuration: {str(e)}"
+            detail="Invalid scan configuration"
         )
 
 
@@ -316,7 +316,7 @@ async def get_scan_report(
         if task_result.status != "SUCCESS":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Scan is not completed. Current status: {task_result.status}"
+                detail="Scan is not completed"
             )
         
         # Get cached metadata for authorization check
@@ -356,7 +356,7 @@ async def get_scan_report(
         logger.error(f"Failed to get scan report: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get scan report: {str(e)}"
+            detail="Failed to get scan report"
         )
 
 
@@ -395,7 +395,7 @@ async def list_checks(
         logger.error(f"Failed to list checks: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list checks: {str(e)}"
+            detail="Failed to list checks"
         )
 
 
@@ -462,7 +462,7 @@ async def get_compliance_report(
         logger.error(f"Failed to generate compliance report: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate compliance report: {str(e)}"
+            detail="Failed to generate compliance report"
         )
 
 
@@ -512,7 +512,7 @@ async def cancel_scan(
         logger.error(f"Failed to cancel scan: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to cancel scan: {str(e)}"
+            detail="Failed to cancel scan"
         )
 
 
@@ -571,7 +571,7 @@ async def get_dashboard_summary(
         logger.error(f"Failed to get dashboard summary: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get dashboard summary: {str(e)}"
+            detail="Failed to get dashboard summary"
         )
 
 
@@ -637,7 +637,7 @@ async def get_executive_summary(
         logger.error(f"Failed to get executive summary: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get executive summary: {str(e)}"
+            detail="Failed to get executive summary"
         )
 
 
@@ -676,7 +676,7 @@ async def get_remediation_roadmap(
         logger.error(f"Failed to get remediation roadmap: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get remediation roadmap: {str(e)}"
+            detail="Failed to get remediation roadmap"
         )
 
 
@@ -737,7 +737,7 @@ async def start_batch_scans(
         logger.error(f"Failed to start batch scans: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start batch scans: {str(e)}"
+            detail="Failed to start batch scans"
         )
 
 
@@ -806,7 +806,7 @@ async def get_compliance_summary(
         logger.error(f"Failed to get compliance summary: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get compliance summary: {str(e)}"
+            detail="Failed to get compliance summary"
         )
 
 
@@ -925,7 +925,7 @@ async def get_compliance_findings(
         logger.error(f"Failed to get compliance findings: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get compliance findings: {str(e)}"
+            detail="Failed to get compliance findings"
         )
 
 
@@ -950,7 +950,7 @@ async def value_error_handler(request, exc):
         status_code=400,
         content=schemas.ErrorResponse(
             error="ValidationError",
-            message=str(exc)
+            message="Validation error"
         ).model_dump()
     )
 
