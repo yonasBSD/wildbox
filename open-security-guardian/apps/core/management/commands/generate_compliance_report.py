@@ -89,7 +89,7 @@ class Command(BaseCommand):
             # Try to get by ID first, then by name
             try:
                 framework = ComplianceFramework.objects.get(id=framework_identifier)
-            except:
+            except (ComplianceFramework.DoesNotExist, ValueError):
                 framework = ComplianceFramework.objects.get(name__icontains=framework_identifier)
             
             self.generate_single_framework_report(framework, options)

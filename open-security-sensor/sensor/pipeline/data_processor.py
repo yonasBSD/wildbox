@@ -277,7 +277,7 @@ class DataProcessor:
                 timeout=2.0
             )
             info['reverse_dns'] = reverse_dns
-        except:
+        except (OSError, asyncio.TimeoutError):
             pass  # Ignore DNS lookup failures
         
         return info
@@ -290,7 +290,7 @@ class DataProcessor:
                 None, socket.gethostbyaddr, ip_address
             )
             return hostname[0] if hostname else None
-        except:
+        except (OSError, socket.herror, socket.gaierror):
             return None
     
     def _is_private_ip(self, ip_address: str) -> bool:
@@ -299,7 +299,7 @@ class DataProcessor:
             import ipaddress
             ip = ipaddress.ip_address(ip_address)
             return ip.is_private
-        except:
+        except (ValueError, TypeError):
             return False
     
     def _categorize_connection(self, connection_data: Dict[str, Any]) -> str:
@@ -442,7 +442,7 @@ class DataProcessor:
                 # Try to parse and reformat
                 dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                 return dt.isoformat()
-            except:
+            except (ValueError, TypeError):
                 return timestamp
         elif isinstance(timestamp, (int, float)):
             # Unix timestamp

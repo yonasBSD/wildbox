@@ -6,6 +6,8 @@ It uses a combination of LLM reasoning and security tools to generate comprehens
 """
 
 import logging
+import sys
+import os
 from datetime import datetime, timezone
 from typing import Dict, Any, List
 
@@ -16,6 +18,20 @@ from langchain.schema.messages import SystemMessage
 
 from ..config import settings
 from ..tools.langchain_tools import ALL_TOOLS
+
+# Circuit breaker for OpenAI API resilience
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'open-security-shared'))
+try:
+    from circuit_breaker import CircuitBreaker, CircuitBreakerError
+    OPENAI_BREAKER = CircuitBreaker(
+        name="openai_agent",
+        failure_threshold=3,
+        timeout=120,
+        recovery_timeout=60,
+    )
+except ImportError:
+    OPENAI_BREAKER = None
+    CircuitBreakerError = Exception
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +142,13 @@ Begin your investigation by thinking through your approach, then systematically 
             # Prepare input for the agent
             input_text = f"Please investigate this {ioc['type']} IOC: {ioc['value']}"
             
-            # Execute the agent
-            result = await self.agent_executor.ainvoke({"input": input_text})
+            # Execute the agent (protected by circuit breaker)
+            if OPENAI_BREAKER is not None:
+                result = await OPENAI_BREAKER.call(
+                    self.agent_executor.ainvoke, {"input": input_text}
+                )
+            else:
+                result = await self.agent_executor.ainvoke({"input": input_text})
             
             # Extract the agent's analysis
             agent_output = result.get("output", "")
@@ -240,7 +261,7 @@ Verdict:"""
                                 "finding": f"Tool executed successfully",
                                 "severity": "low"
                             })
-                    except:
+                    except (json.JSONDecodeError, ValueError, KeyError):
                         pass
             
             # Build final result

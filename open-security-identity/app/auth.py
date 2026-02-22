@@ -2,6 +2,7 @@
 Authentication utilities for JWT tokens and password hashing.
 """
 
+import uuid
 import secrets
 import hashlib
 import hmac
@@ -72,13 +73,14 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
         Encoded JWT token string
     """
     to_encode = data.copy()
-    
+
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.jwt_access_token_expire_minutes)
-    
-    to_encode.update({"exp": expire})
+
+    # Add unique token ID for revocation support
+    to_encode.update({"exp": expire, "jti": str(uuid.uuid4())})
     encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     return encoded_jwt
 
@@ -124,16 +126,27 @@ async def get_current_user(
     Raises:
         HTTPException: If authentication fails
     """
+    from .token_blacklist import is_token_blacklisted
+
     # Verify token
     payload = verify_access_token(credentials.credentials)
     user_id = payload.get("sub")
-    
+
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
-    
+
+    # Check if token has been revoked
+    jti = payload.get("jti")
+    if jti and await is_token_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Get user from database
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()

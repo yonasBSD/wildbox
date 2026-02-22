@@ -20,9 +20,16 @@ class Settings(BaseSettings):
     database_url: str = Field(..., description="Database connection URL")
     
     # JWT Authentication
-    jwt_secret_key: str = Field(..., description="JWT secret key for token signing")
+    jwt_secret_key: str = Field(..., description="JWT secret key for token signing", min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
+
+    # Redis (for token blacklist and rate limiting)
+    redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
+
+    # Account lockout
+    max_failed_login_attempts: int = 5
+    account_lockout_minutes: int = 15
     
     # Stripe Configuration (Optional - only required if using subscription features)
     stripe_secret_key: Optional[str] = Field(None, description="Stripe secret key")

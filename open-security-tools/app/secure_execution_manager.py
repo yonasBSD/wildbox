@@ -301,7 +301,7 @@ class SecureToolExecutionManager:
                 try:
                     process.kill()
                     await process.wait()
-                except:
+                except (OSError, ProcessLookupError):
                     pass
                 
                 status = ExecutionStatus.TIMEOUT
@@ -390,7 +390,7 @@ def main():
         try:
             with open('{output_file}', 'w') as f:
                 json.dump(error_result, f, indent=2)
-        except:
+        except (OSError, IOError):
             pass
         
         print(f"Tool execution failed: {{e}}", file=sys.stderr)

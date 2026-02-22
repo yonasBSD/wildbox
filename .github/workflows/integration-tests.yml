@@ -10,19 +10,19 @@ on:
   workflow_dispatch:
 
 env:
-  # Test environment secrets (safe defaults for CI)
-  # Note: API_KEY must be 32+ characters and cannot contain weak patterns
-  # (test, key, password, secret, admin, demo, 123, abc, default, wildbox, api-key)
-  JWT_SECRET_KEY: ae3f8b1c9d2e7f4a6c5d8e9f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b
-  API_KEY: 907bb9126816d312e8db8035bd8aea898630b401aba56c2fbd0f59705e289906
-  POSTGRES_PASSWORD: test-postgres-password-ci
-  DATABASE_URL: postgresql+asyncpg://postgres:test-postgres-password-ci@postgres:5432/identity
+  # SECURITY: All secrets sourced from GitHub Secrets.
+  # Configure these in repo Settings > Secrets and variables > Actions.
+  # For initial setup, generate random values with: openssl rand -hex 32
+  JWT_SECRET_KEY: ${{ secrets.CI_JWT_SECRET_KEY }}
+  API_KEY: ${{ secrets.CI_API_KEY }}
+  POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+  DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@postgres:5432/identity
   REDIS_URL: redis://redis:6379/0
-  GATEWAY_INTERNAL_SECRET: test-gateway-secret-ci
+  GATEWAY_INTERNAL_SECRET: ${{ secrets.CI_GATEWAY_INTERNAL_SECRET }}
   N8N_BASIC_AUTH_USER: admin
-  N8N_BASIC_AUTH_PASSWORD: test-n8n-password-ci
-  GRAFANA_ADMIN_PASSWORD: test-grafana-password-ci
-  NEXTAUTH_SECRET: test-nextauth-secret-ci
+  N8N_BASIC_AUTH_PASSWORD: ${{ secrets.CI_N8N_PASSWORD }}
+  GRAFANA_ADMIN_PASSWORD: ${{ secrets.CI_GRAFANA_PASSWORD }}
+  NEXTAUTH_SECRET: ${{ secrets.CI_NEXTAUTH_SECRET }}
 
 jobs:
   integration-tests:
@@ -35,7 +35,7 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test-postgres-password-ci
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
           POSTGRES_DB: identity
         options: >-
           --health-cmd pg_isready
@@ -103,7 +103,7 @@ jobs:
           cd open-security-identity
           alembic upgrade head
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:test-postgres-password-ci@localhost:5432/identity
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/identity
 
       - name: Start Identity Service
         run: |
@@ -112,9 +112,9 @@ jobs:
           IDENTITY_PID=$!
           echo "IDENTITY_PID=$IDENTITY_PID" >> $GITHUB_ENV
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:test-postgres-password-ci@localhost:5432/identity
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/identity
           REDIS_URL: redis://localhost:6379/0
-          JWT_SECRET_KEY: ae3f8b1c9d2e7f4a6c5d8e9f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b
+          JWT_SECRET_KEY: ${{ secrets.CI_JWT_SECRET_KEY }}
           CREATE_INITIAL_ADMIN: "false"
 
       - name: Install Tools Service Dependencies
@@ -129,7 +129,7 @@ jobs:
           TOOLS_PID=$!
           echo "TOOLS_PID=$TOOLS_PID" >> $GITHUB_ENV
         env:
-          API_KEY: 907bb9126816d312e8db8035bd8aea898630b401aba56c2fbd0f59705e289906
+          API_KEY: ${{ secrets.CI_API_KEY }}
           REDIS_URL: redis://localhost:6379/2
 
       - name: Wait for all services to be healthy
@@ -157,7 +157,7 @@ jobs:
         env:
           IDENTITY_SERVICE_URL: http://localhost:8001
           TOOLS_SERVICE_URL: http://localhost:8000
-          TEST_API_KEY: 907bb9126816d312e8db8035bd8aea898630b401aba56c2fbd0f59705e289906
+          TEST_API_KEY: ${{ secrets.CI_API_KEY }}
         timeout-minutes: 10
 
       - name: Upload Test Results

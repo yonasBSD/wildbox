@@ -85,14 +85,16 @@ async def handle_checkout_completed(session_data: dict, db: AsyncSession):
         print(f"Invalid plan_id in metadata: {plan_id_str}")
         return
     
-    # Update subscription in our database
+    # Update subscription in our database (use FOR UPDATE to prevent race conditions)
     result = await db.execute(
-        select(Subscription).where(Subscription.team_id == team_id)
+        select(Subscription)
+        .where(Subscription.team_id == team_id)
+        .with_for_update()
     )
     subscription = result.scalar_one_or_none()
-    
+
     if subscription:
-        subscription.stripe_subscription_id = subscription_id  # FIX: This was missing
+        subscription.stripe_subscription_id = subscription_id
         subscription.plan_id = plan_id
         subscription.status = SubscriptionStatus.ACTIVE
         await db.commit()
@@ -135,13 +137,14 @@ async def handle_subscription_updated(subscription_data: dict, db: AsyncSession)
         subscription_data.get('current_period_end', 0)
     )
     
-    # Find subscription by Stripe ID
+    # Find subscription by Stripe ID (with row lock)
     result = await db.execute(
         select(Subscription)
         .where(Subscription.stripe_subscription_id == subscription_id)
+        .with_for_update()
     )
     subscription = result.scalar_one_or_none()
-    
+
     if subscription:
         subscription.status = SubscriptionStatus(status)
         subscription.current_period_end = current_period_end
@@ -151,17 +154,17 @@ async def handle_subscription_updated(subscription_data: dict, db: AsyncSession)
 async def handle_subscription_deleted(subscription_data: dict, db: AsyncSession):
     """Handle subscription cancellation."""
     subscription_id = subscription_data.get('id')
-    
-    # Find and cancel subscription
+
+    # Find and cancel subscription (with row lock)
     result = await db.execute(
         select(Subscription)
         .where(Subscription.stripe_subscription_id == subscription_id)
+        .with_for_update()
     )
     subscription = result.scalar_one_or_none()
-    
+
     if subscription:
         subscription.status = SubscriptionStatus.CANCELED
-        # Downgrade to free plan
         subscription.plan_id = SubscriptionPlan.FREE
         await db.commit()
 
@@ -169,15 +172,15 @@ async def handle_subscription_deleted(subscription_data: dict, db: AsyncSession)
 async def handle_payment_succeeded(invoice_data: dict, db: AsyncSession):
     """Handle successful payment."""
     subscription_id = invoice_data.get('subscription')
-    
+
     if subscription_id:
-        # Update subscription status to active
         result = await db.execute(
             select(Subscription)
             .where(Subscription.stripe_subscription_id == subscription_id)
+            .with_for_update()
         )
         subscription = result.scalar_one_or_none()
-        
+
         if subscription:
             subscription.status = SubscriptionStatus.ACTIVE
             await db.commit()
@@ -186,15 +189,15 @@ async def handle_payment_succeeded(invoice_data: dict, db: AsyncSession):
 async def handle_payment_failed(invoice_data: dict, db: AsyncSession):
     """Handle failed payment."""
     subscription_id = invoice_data.get('subscription')
-    
+
     if subscription_id:
-        # Update subscription status
         result = await db.execute(
             select(Subscription)
             .where(Subscription.stripe_subscription_id == subscription_id)
+            .with_for_update()
         )
         subscription = result.scalar_one_or_none()
-        
+
         if subscription:
             subscription.status = SubscriptionStatus.PAST_DUE
             await db.commit()

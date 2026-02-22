@@ -65,7 +65,7 @@ def generate_report(report_id):
             report.status = 'failed'
             report.error_message = str(e)
             report.save()
-        except:
+        except Exception:
             pass
         
         return None
@@ -235,9 +235,15 @@ def save_report_file(report, content):
     reports_dir = os.path.join(settings.MEDIA_ROOT, 'reports')
     os.makedirs(reports_dir, exist_ok=True)
     
-    # Generate filename
-    filename = f"{report.id}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{report.format}"
+    # Generate filename — sanitize format to prevent path traversal
+    safe_format = os.path.basename(str(report.format)).replace(os.sep, '')
+    if safe_format not in ('pdf', 'html', 'json', 'csv', 'xlsx'):
+        safe_format = 'html'
+    filename = f"{report.id}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.{safe_format}"
     file_path = os.path.join(reports_dir, filename)
+    # Verify resolved path stays inside reports_dir
+    if not os.path.realpath(file_path).startswith(os.path.realpath(reports_dir)):
+        raise ValueError("Invalid report filename: path traversal detected")
     
     # Save content based on format
     if report.format == 'json':

@@ -17,6 +17,7 @@ engine = create_engine(
     pool_size=config.database.pool_size,
     max_overflow=config.database.max_overflow,
     pool_timeout=config.database.pool_timeout,
+    pool_pre_ping=True,
     echo=config.database.echo,
     poolclass=StaticPool if "sqlite" in config.database.url else None,
     connect_args={"check_same_thread": False} if "sqlite" in config.database.url else {}

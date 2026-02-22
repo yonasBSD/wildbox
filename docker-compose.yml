@@ -256,8 +256,10 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
-    ports:
-      - "5432:5432"
+    # SECURITY: PostgreSQL not exposed to host. Access via Docker network only.
+    # Uncomment for local development if needed:
+    # ports:
+    #   - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

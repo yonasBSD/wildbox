@@ -254,9 +254,9 @@ class LogForwarder:
             try:
                 process.terminate()
                 await process.wait()
-            except:
+            except (OSError, ProcessLookupError):
                 pass
-                
+
         except Exception as e:
             logger.error(f"Error starting journald monitoring: {e}")
     
@@ -348,9 +348,9 @@ class LogForwarder:
             try:
                 process.terminate()
                 await process.wait()
-            except:
+            except (OSError, ProcessLookupError):
                 pass
-                
+
         except Exception as e:
             logger.error(f"Error starting unified log monitoring: {e}")
     

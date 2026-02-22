@@ -17,7 +17,7 @@ class MalwareDomainListCollector(HTTPCollector):
     def __init__(self, source):
         super().__init__(source)
         if not source.url:
-            source.url = "http://www.malwaredomainlist.com/hostslist/hosts.txt"
+            source.url = "https://www.malwaredomainlist.com/hostslist/hosts.txt"
     
     def parse_item(self, raw_item: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Parse malware domain list item"""
@@ -107,7 +107,7 @@ class URLVoidCollector(HTTPCollector):
     def __init__(self, source):
         super().__init__(source)
         self.api_key = self.config.get('api_key')
-        self.base_url = "http://api.urlvoid.com/1000/{}/host/{}"
+        self.base_url = "https://api.urlvoid.com/1000/{}/host/{}"
     
     async def collect_data(self):
         """Collect data by checking specific domains"""

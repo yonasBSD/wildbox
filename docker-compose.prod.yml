@@ -10,6 +10,8 @@ services:
       # Production connection limits
       - POSTGRES_MAX_CONNECTIONS=200
       - POSTGRES_SHARED_BUFFERS=256MB
+    networks:
+      - data
     deploy:
       resources:
         limits:
@@ -33,6 +35,8 @@ services:
       --maxmemory-policy allkeys-lru
       --appendonly yes
       --requirepass ${REDIS_PASSWORD}
+    networks:
+      - data
     deploy:
       resources:
         limits:
@@ -50,6 +54,9 @@ services:
   # Identity Service - Production
   identity:
     restart: always
+    networks:
+      - backend
+      - data
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
@@ -78,6 +85,9 @@ services:
   # API Service - Production
   api:
     restart: always
+    networks:
+      - backend
+      - data
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
@@ -102,6 +112,9 @@ services:
   # Guardian Service - Production
   guardian:
     restart: always
+    networks:
+      - backend
+      - data
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - DEBUG=false
@@ -125,6 +138,9 @@ services:
   # Responder Service - Production
   responder:
     restart: always
+    networks:
+      - backend
+      - data
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
@@ -148,6 +164,9 @@ services:
   # Agents Service - Production
   agents:
     restart: always
+    networks:
+      - backend
+      - data
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
@@ -169,9 +188,12 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  # Gateway - Production
+  # Gateway - Production (frontend + backend, NO data access)
   gateway:
     restart: always
+    networks:
+      - frontend
+      - backend
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=warn
@@ -192,9 +214,11 @@ services:
     volumes:
       - ./open-security-gateway/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
 
-  # Dashboard - Production
+  # Dashboard - Production (frontend only, NO direct backend/data access)
   dashboard:
     restart: always
+    networks:
+      - frontend
     build:
       context: ./open-security-dashboard
       dockerfile: Dockerfile
@@ -217,13 +241,30 @@ services:
         max-size: "10m"
         max-file: "3"
 
-# Production network configuration
+# Production network segmentation:
+#   frontend: dashboard <-> gateway (public-facing)
+#   backend:  gateway <-> microservices (internal APIs)
+#   data:     microservices <-> postgres/redis (data layer)
+# Dashboard cannot reach postgres/redis directly.
+# Gateway cannot reach postgres/redis directly.
 networks:
-  wildbox:
+  frontend:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: 172.20.0.0/24
+  backend:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.1.0/24
+  data:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.2.0/24
 
 # Production volumes with backup labels
 volumes:

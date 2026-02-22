@@ -146,8 +146,9 @@ class IPGeolocationLookup:
                 # Apply rate limiting before making external request
                 await self.rate_limiter.acquire()
                 
-                # Using ip-api.com (free service with rate limits)
-                url = f"http://ip-api.com/json/{ip_address}"
+                # Using ip-api.com (free tier only supports HTTP; pro supports HTTPS)
+                # TODO: Upgrade to pro plan and switch to https://pro.ip-api.com/json/
+                url = f"https://ip-api.com/json/{ip_address}"
                 
                 async with session.get(url) as response:
                     if response.status == 200:

@@ -3,9 +3,9 @@ Authentication endpoints.
 """
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -15,10 +15,15 @@ from ...models import User, Team, TeamMembership, Subscription, TeamRole, Subscr
 from ...schemas import UserCreate, UserLogin, Token
 from ...auth import (
     verify_password, get_password_hash, create_access_token,
-    get_current_active_user
+    get_current_active_user, verify_access_token
 )
 from ...billing import billing_service
 from ...config import settings
+from ...token_blacklist import (
+    blacklist_token, record_failed_login, clear_failed_logins, is_account_locked
+)
+
+security = HTTPBearer()
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +115,15 @@ async def _authenticate_user(email: str, password: str, db: AsyncSession) -> dic
     Helper function to authenticate user and return token data.
     Used by both form-based and JSON-based login endpoints.
     """
+    # Check account lockout
+    if await is_account_locked(email):
+        logger.warning(f"AUTH_FAILURE: Locked account login attempt for email={email}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Account temporarily locked due to too many failed attempts. "
+                   f"Try again in {settings.account_lockout_minutes} minutes.",
+        )
+
     # Find user by email
     result = await db.execute(
         select(User)
@@ -117,9 +131,10 @@ async def _authenticate_user(email: str, password: str, db: AsyncSession) -> dic
         .where(User.email == email)
     )
     user = result.scalar_one_or_none()
-    
+
     if not user or not verify_password(password, user.hashed_password):
         logger.warning(f"AUTH_FAILURE: Failed login attempt for email={email}")
+        await record_failed_login(email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -132,6 +147,9 @@ async def _authenticate_user(email: str, password: str, db: AsyncSession) -> dic
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Inactive user"
         )
+
+    # Clear failed login counter on success
+    await clear_failed_logins(email)
     
     # Get primary team (first team or owned team)
     primary_membership = None
@@ -230,9 +248,16 @@ async def get_current_user_info(
 
 @router.post("/logout")
 async def logout_user(
-    current_user: User = Depends(get_current_active_user)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
-    Logout user (token invalidation would be handled by client or Redis blacklist).
+    Logout user by revoking the current JWT token via Redis blacklist.
     """
+    payload = verify_access_token(credentials.credentials)
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if jti and exp:
+        expires_at = datetime.utcfromtimestamp(exp)
+        await blacklist_token(jti, expires_at)
     return {"message": "Successfully logged out"}
