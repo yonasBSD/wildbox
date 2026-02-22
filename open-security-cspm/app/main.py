@@ -1,5 +1,5 @@
 """
-FastAPI main application for Open Security CSMP
+FastAPI main application for Open Security CSPM
 """
 
 import asyncio
@@ -10,10 +10,9 @@ import uuid
 import redis
 import json
 
-from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, status
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, status, Request, Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 
 from .config import settings
@@ -33,14 +32,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Conditionally expose API docs (disabled in production)
+_docs_url = "/docs" if settings.debug else None
+_redoc_url = "/redoc" if settings.debug else None
+_openapi_url = "/openapi.json" if settings.debug else None
+
 # Create FastAPI application
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="Cloud Security Posture Management for Wildbox Security Suite",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json"
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
+    openapi_url=_openapi_url
 )
 
 # Add CORS middleware
@@ -52,30 +56,51 @@ app.add_middleware(
     allow_headers=settings.cors_allow_headers,
 )
 
-# Security
-security = HTTPBearer(auto_error=False)
-
 # Redis client for caching
 redis_client = redis.from_url(settings.redis_url, decode_responses=True)
 
 # Application state
 app_start_time = datetime.utcnow()
 
+# UUID regex for path parameter validation
+_UUID_REGEX = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
+
+async def get_current_user(request: Request):
     """
-    Get current user from token.
-    For v1, we'll implement basic auth. In production, integrate with wildbox-identity.
+    Authenticate via gateway-injected headers.
+    All requests must come through the API gateway which validates tokens
+    and injects X-Wildbox-* headers.
     """
-    if not credentials:
+    user_id = request.headers.get("X-Wildbox-User-ID")
+    team_id = request.headers.get("X-Wildbox-Team-ID")
+
+    if not user_id or not team_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+            detail="Authentication required. Access via gateway with X-Wildbox-* headers.",
+            headers={"WWW-Authenticate": "Bearer"}
         )
-    
-    # TODO: Integrate with wildbox-identity service for proper authentication
-    # For now, accept any token for development
-    return {"user_id": "dev_user", "team_id": "dev_team"}
+
+    return {
+        "user_id": user_id,
+        "team_id": team_id,
+        "plan": request.headers.get("X-Wildbox-Plan", "free"),
+        "role": request.headers.get("X-Wildbox-Role", "member")
+    }
 
 
 @app.get("/health", response_model=schemas.HealthCheckResponse)
@@ -153,10 +178,19 @@ async def start_scan(
         # Generate scan ID
         scan_id = str(uuid.uuid4())
         
-        # Prepare scan configuration for worker
+        # Store credentials securely in Redis with short TTL (5 min)
+        # instead of passing them through Celery task args (which are stored in Redis as plaintext)
+        cred_key = f"scan:{scan_id}:creds"
+        redis_client.setex(
+            cred_key,
+            300,  # 5 minute TTL
+            json.dumps(scan_request.credentials.model_dump())
+        )
+
+        # Prepare scan configuration for worker (NO credentials in task args)
         scan_config = {
             "provider": scan_request.provider.value,
-            "credentials": scan_request.credentials.model_dump(),
+            "credential_ref": cred_key,
             "account_id": scan_request.account_id,
             "account_name": scan_request.account_name,
             "regions": scan_request.regions,
@@ -167,7 +201,7 @@ async def start_scan(
                 "team_id": current_user["team_id"]
             }
         }
-        
+
         # Start Celery task
         task = run_cspm_scan_task.apply_async(
             args=[scan_config],
@@ -223,7 +257,7 @@ async def start_scan(
 
 @app.get("/api/v1/scans/{scan_id}", response_model=schemas.ScanStatusResponse)
 async def get_scan_status(
-    scan_id: str,
+    scan_id: str = Path(..., pattern=_UUID_REGEX),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get the status of a running or completed scan."""
@@ -304,7 +338,7 @@ async def get_scan_status(
 
 @app.get("/api/v1/scans/{scan_id}/report", response_model=schemas.ScanReportSchema)
 async def get_scan_report(
-    scan_id: str,
+    scan_id: str = Path(..., pattern=_UUID_REGEX),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get the complete report for a completed scan."""
@@ -401,7 +435,7 @@ async def list_checks(
 
 @app.get("/api/v1/scans/{scan_id}/compliance", response_model=schemas.ComplianceReportResponse)
 async def get_compliance_report(
-    scan_id: str,
+    scan_id: str = Path(..., pattern=_UUID_REGEX),
     framework: Optional[str] = None,
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
@@ -468,7 +502,7 @@ async def get_compliance_report(
 
 @app.delete("/api/v1/scans/{scan_id}")
 async def cancel_scan(
-    scan_id: str,
+    scan_id: str = Path(..., pattern=_UUID_REGEX),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Cancel a running scan."""
@@ -643,21 +677,36 @@ async def get_executive_summary(
 
 @app.get("/api/v1/scans/{scan_id}/remediation-roadmap", response_model=schemas.RemediationRoadmapResponse)
 async def get_remediation_roadmap(
-    scan_id: str,
+    scan_id: str = Path(..., pattern=_UUID_REGEX),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """Get prioritized remediation roadmap for a scan."""
     try:
+        # Check authorization (user can only access their own scans)
+        metadata_json = redis_client.get(f"scan:{scan_id}:metadata")
+        if not metadata_json:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Scan not found"
+            )
+
+        metadata = json.loads(metadata_json)
+        if metadata.get("team_id") != current_user["team_id"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+
         # Get scan results
         results_key = f"scan:{scan_id}:results"
         results_data = redis_client.get(results_key)
-        
+
         if not results_data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Scan results not found"
             )
-        
+
         results = json.loads(results_data)
         
         # Generate remediation roadmap
@@ -693,11 +742,19 @@ async def start_batch_scans(
         for scan_config in batch_request.scans:
             # Generate individual scan ID
             scan_id = str(uuid.uuid4())
-            
-            # Prepare scan configuration for worker
+
+            # Store credentials securely with short TTL
+            cred_key = f"scan:{scan_id}:creds"
+            redis_client.setex(
+                cred_key,
+                300,
+                json.dumps(scan_config.credentials.model_dump())
+            )
+
+            # Prepare scan configuration for worker (NO credentials in task args)
             scan_config_dict = {
                 "provider": scan_config.provider.value,
-                "credentials": scan_config.credentials.model_dump(),
+                "credential_ref": cred_key,
                 "account_id": scan_config.account_id,
                 "account_name": scan_config.account_name,
                 "regions": scan_config.regions,

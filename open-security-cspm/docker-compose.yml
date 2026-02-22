@@ -12,23 +12,28 @@ services:
     container_name: wildbox-cspm
     restart: unless-stopped
     ports:
-      - "8019:8019"
+      - "127.0.0.1:8019:8019"
     environment:
       - ENVIRONMENT=production
-      # For standalone development (uses local Redis)
-      - REDIS_URL=redis://redis:6379/0
+      # For standalone development (uses local Redis with auth)
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
       # For integration with main stack, use:
       # - REDIS_URL=redis://wildbox-redis:6379/3
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set (min 32 chars)}
       - LOG_LEVEL=INFO
       - PROMETHEUS_PORT=9090
     depends_on:
       redis:
         condition: service_healthy
     volumes:
-      - ./config:/app/config
+      - ./config:/app/config:ro
       - ./logs:/app/logs
     networks:
       - wildbox-network
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8019/health"]
       interval: 30s
@@ -43,19 +48,21 @@ services:
     command: celery -A app.worker worker --loglevel=info --concurrency=4
     environment:
       - ENVIRONMENT=production
-      # For standalone development (uses local Redis)
-      - REDIS_URL=redis://redis:6379/0
-      # For integration with main stack, use:
-      # - REDIS_URL=redis://wildbox-redis:6379/3
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set (min 32 chars)}
       - LOG_LEVEL=INFO
     depends_on:
       redis:
         condition: service_healthy
     volumes:
-      - ./config:/app/config
+      - ./config:/app/config:ro
       - ./logs:/app/logs
     networks:
       - wildbox-network
+    security_opt:
+      - no-new-privileges:true
 
   celery-beat:
     build: .
@@ -64,19 +71,21 @@ services:
     command: celery -A app.worker beat --loglevel=info
     environment:
       - ENVIRONMENT=production
-      # For standalone development (uses local Redis)
-      - REDIS_URL=redis://redis:6379/0
-      # For integration with main stack, use:
-      # - REDIS_URL=redis://wildbox-redis:6379/3
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set (min 32 chars)}
       - LOG_LEVEL=INFO
     depends_on:
       redis:
         condition: service_healthy
     volumes:
-      - ./config:/app/config
+      - ./config:/app/config:ro
       - ./logs:/app/logs
     networks:
       - wildbox-network
+    security_opt:
+      - no-new-privileges:true
 
   # Local Redis for standalone development
   # When using main stack, CSPM service connects to wildbox-redis:6379/3
@@ -84,36 +93,38 @@ services:
     image: redis:7-alpine
     container_name: wildbox-cspm-redis
     restart: unless-stopped
-    ports:
-      - "6385:6379"
+    # SECURITY: Redis not exposed to host. Access via Docker network only.
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16 --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     networks:
       - wildbox-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
 
-  # Optional: Flower for monitoring Celery tasks
+  # Optional: Flower for monitoring Celery tasks (dev only)
   flower:
     build: .
     container_name: wildbox-cspm-flower
     restart: unless-stopped
-    command: celery -A app.worker flower --port=5555
+    command: celery -A app.worker flower --port=5555 --basic-auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:?FLOWER_PASSWORD must be set}
     ports:
-      - "5558:5555"
+      - "127.0.0.1:5558:5555"
     environment:
       - ENVIRONMENT=production
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - wildbox-network
+    security_opt:
+      - no-new-privileges:true
     profiles:
       - dev
 

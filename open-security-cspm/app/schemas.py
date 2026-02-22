@@ -21,11 +21,11 @@ class AWSCredentials(BaseModel):
     """AWS credentials configuration."""
     auth_method: str = Field(default="access_key", description="Authentication method")
     access_key_id: str = Field(..., description="AWS Access Key ID")
-    secret_access_key: str = Field(..., description="AWS Secret Access Key")
+    secret_access_key: str = Field(..., description="AWS Secret Access Key", repr=False)
     region: Optional[str] = Field(default="us-east-1", description="Default AWS region")
     role_arn: Optional[str] = Field(None, description="IAM role ARN for assume role auth")
     external_id: Optional[str] = Field(None, description="External ID for assume role")
-    
+
     @validator('auth_method')
     def validate_auth_method(cls, v):
         allowed_methods = ['access_key', 'assume_role']
@@ -38,8 +38,17 @@ class GCPCredentials(BaseModel):
     """GCP credentials configuration."""
     auth_method: str = Field(default="service_account", description="Authentication method")
     project_id: str = Field(..., description="GCP Project ID")
-    service_account_key: Optional[Dict[str, Any]] = Field(None, description="Service account key JSON")
+    service_account_key: Optional[Dict[str, Any]] = Field(None, description="Service account key JSON", repr=False)
     service_account_file: Optional[str] = Field(None, description="Path to service account key file")
+
+    @validator('service_account_file')
+    def validate_service_account_path(cls, v):
+        if v is not None:
+            import os
+            normalized = os.path.normpath(v)
+            if '..' in normalized.split(os.sep):
+                raise ValueError('Path traversal not allowed in service_account_file')
+        return v
 
 
 class AzureCredentials(BaseModel):
@@ -47,7 +56,7 @@ class AzureCredentials(BaseModel):
     auth_method: str = Field(default="client_secret", description="Authentication method")
     tenant_id: str = Field(..., description="Azure Tenant ID")
     client_id: str = Field(..., description="Azure Client ID")
-    client_secret: Optional[str] = Field(None, description="Azure Client Secret")
+    client_secret: Optional[str] = Field(None, description="Azure Client Secret", repr=False)
     subscription_id: str = Field(..., description="Azure Subscription ID")
 
 

@@ -7,11 +7,11 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import json
-import traceback
 
 from celery import Celery
 from celery.signals import worker_ready, worker_shutting_down
 import boto3
+import redis as redis_lib
 from google.auth import default as gcp_default
 from azure.identity import DefaultAzureCredential
 
@@ -139,18 +139,32 @@ def run_cspm_scan_task(
     """
     scan_id = self.request.id
     provider_str = scan_config["provider"]
-    
+
     logger.info(f"Starting CSPM scan {scan_id} for {provider_str}")
-    
+
+    # Retrieve credentials from secure Redis reference (not from task args)
+    redis_worker = redis_lib.from_url(settings.redis_url, decode_responses=True)
+    credential_ref = scan_config.get("credential_ref")
+    if not credential_ref:
+        raise ValueError("Missing credential reference in scan config")
+
+    cred_data = redis_worker.get(credential_ref)
+    if not cred_data:
+        raise ValueError("Credentials expired or not found. Re-submit the scan.")
+
+    credentials = json.loads(cred_data)
+    # Delete credentials from Redis immediately after retrieval
+    redis_worker.delete(credential_ref)
+
     try:
         # Validate provider
         try:
             provider = CloudProvider(provider_str)
         except ValueError:
             raise ValueError(f"Unsupported cloud provider: {provider_str}")
-        
-        # Create cloud session
-        session = _create_cloud_session(provider, scan_config["credentials"])
+
+        # Create cloud session from retrieved credentials
+        session = _create_cloud_session(provider, credentials)
         
         # Extract scan parameters
         account_id = scan_config["account_id"]
@@ -218,25 +232,20 @@ def run_cspm_scan_task(
         }
         
     except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
-        error_msg = str(e)
-        error_traceback = traceback.format_exc()
-        
-        logger.error(f"CSMP scan {scan_id} failed: {error_msg}")
-        logger.debug(f"Traceback: {error_traceback}")
-        
-        # Update task state
+        logger.error(f"CSPM scan {scan_id} failed: {e}", exc_info=True)
+
+        # Update task state (no traceback or raw error in stored meta)
         self.update_state(
             state="FAILURE",
             meta={
                 "status": "failed",
                 "provider": provider_str,
                 "account_id": scan_config.get("account_id", "unknown"),
-                "error": error_msg,
-                "error_traceback": error_traceback,
+                "error": "Scan failed. Check server logs for details.",
                 "failed_at": datetime.utcnow().isoformat()
             }
         )
-        
+
         # Re-raise to mark task as failed
         raise
 
