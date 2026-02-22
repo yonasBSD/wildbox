@@ -22,6 +22,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-identity
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8001:8001"
     environment:
@@ -52,6 +54,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-tools
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8000:8000"
     environment:
@@ -81,6 +85,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-tools-worker
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     command: celery -A app.celery_app worker --loglevel=info --concurrency=4 --max-tasks-per-child=50 -I app.tasks
     environment:
       - API_KEY=${API_KEY}
@@ -106,9 +112,11 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-tools-flower
     restart: unless-stopped
-    command: celery -A app.celery_app flower --port=5555
+    security_opt:
+      - no-new-privileges:true
+    command: celery -A app.celery_app flower --port=5555 --basic-auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-changeme}
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     environment:
       - REDIS_URL=redis://wildbox-redis:6379/2
     depends_on:
@@ -124,6 +132,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-data
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8002:8002"
     environment:
@@ -148,6 +158,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-data-scheduler
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     command: python -m app.scheduler.main
     environment:
       - DATABASE_URL=${DATA_DATABASE_URL}
@@ -171,6 +183,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-gateway
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "80:80"
       - "443:443"
@@ -208,6 +222,8 @@ services:
       dockerfile: Dockerfile.dev
     container_name: open-security-dashboard
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "3000:3000"
     volumes:
@@ -275,7 +291,7 @@ services:
     image: redis:7-alpine
     container_name: wildbox-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --databases 16
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --databases 16 --requirepass ${REDIS_PASSWORD:-changeme}
     deploy:
       resources:
         limits:
@@ -289,7 +305,7 @@ services:
     networks:
       - wildbox
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -302,6 +318,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-guardian
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8013:8013"
     environment:
@@ -312,7 +330,7 @@ services:
       - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FILE=/app/logs/guardian.log
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,open-security-guardian
+      - ALLOWED_HOSTS=localhost,127.0.0.1,open-security-guardian
     volumes:
       - guardian_logs:/app/logs
     depends_on:
@@ -335,6 +353,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-responder
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8018:8018"
     environment:
@@ -364,6 +384,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-cspm
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8019:8019"
     environment:
@@ -444,6 +466,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-agents
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8006:8006"
     environment:
@@ -484,6 +508,8 @@ services:
       dockerfile: Dockerfile
     container_name: open-security-sensor
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "8004:8004"
     environment:
@@ -513,6 +539,8 @@ services:
     image: n8nio/n8n:1.74.0
     container_name: open-security-automations
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "5678:5678"
     environment:

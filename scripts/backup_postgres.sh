@@ -46,7 +46,18 @@ if [ -z "${POSTGRES_PASSWORD:-}" ]; then
   exit 1
 fi
 
-export PGPASSWORD="$POSTGRES_PASSWORD"
+# Use .pgpass file instead of exporting PGPASSWORD (avoids exposure in /proc)
+PGPASS_FILE=$(mktemp)
+chmod 600 "$PGPASS_FILE"
+echo "${POSTGRES_HOST}:${POSTGRES_PORT}:*:${POSTGRES_USER}:${POSTGRES_PASSWORD}" > "$PGPASS_FILE"
+export PGPASSFILE="$PGPASS_FILE"
+trap 'rm -f "$PGPASS_FILE"' EXIT
+
+# Validate BACKUP_RETENTION is numeric
+if ! [[ "$BACKUP_RETENTION" =~ ^[0-9]+$ ]]; then
+  echo "ERROR: BACKUP_RETENTION must be a positive integer, got: $BACKUP_RETENTION"
+  exit 1
+fi
 
 # Create backup directory
 mkdir -p "$BACKUP_DIR"
@@ -106,6 +117,11 @@ done
 # Retention: remove backups older than BACKUP_RETENTION days
 echo ""
 echo "Cleaning up backups older than ${BACKUP_RETENTION} days..."
+# Safety: ensure BACKUP_DIR is an absolute path under expected location
+case "$BACKUP_DIR" in
+  /backups/*|/tmp/*) ;;
+  *) echo "ERROR: BACKUP_DIR must be an absolute path under /backups/ or /tmp/, got: $BACKUP_DIR"; exit 1 ;;
+esac
 DELETED=$(find "$BACKUP_DIR" -name "*.sql.gz*" -mtime +"$BACKUP_RETENTION" -delete -print | wc -l)
 echo "  Removed $DELETED old backup(s)"
 

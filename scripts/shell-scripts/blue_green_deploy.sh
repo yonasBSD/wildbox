@@ -13,6 +13,12 @@ set -euo pipefail
 SERVICE=$1
 VERSION=$2
 
+# Validate SERVICE name (alphanumeric, hyphens, underscores only)
+if ! [[ "$SERVICE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+  echo "ERROR: Invalid service name: $SERVICE (only alphanumeric, hyphens, underscores allowed)"
+  exit 1
+fi
+
 echo "🚀 Blue/Green Deployment: $SERVICE v$VERSION"
 echo "============================================="
 

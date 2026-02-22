@@ -154,15 +154,19 @@ setup_environment() {
 
         # Generate JWT secret
         jwt_secret=$(generate_secret 32)
-        sed -i.bak "s|JWT_SECRET_KEY=.*|JWT_SECRET_KEY=$jwt_secret|" .env
+        # Escape sed special characters in generated values
+        jwt_secret_escaped=$(printf '%s\n' "$jwt_secret" | sed 's/[&/\]/\\&/g')
+        sed -i.bak "s|JWT_SECRET_KEY=.*|JWT_SECRET_KEY=${jwt_secret_escaped}|" .env
 
         # Generate API key
         api_key=$(generate_secret 32)
-        sed -i.bak "s|API_KEY=.*|API_KEY=$api_key|" .env
+        api_key_escaped=$(printf '%s\n' "$api_key" | sed 's/[&/\]/\\&/g')
+        sed -i.bak "s|API_KEY=.*|API_KEY=${api_key_escaped}|" .env
 
         # Generate database password
         db_password=$(generate_secret 16)
-        sed -i.bak "s|postgres:postgres@|postgres:$db_password@|" .env
+        db_password_escaped=$(printf '%s\n' "$db_password" | sed 's/[&/\]/\\&/g')
+        sed -i.bak "s|postgres:postgres@|postgres:${db_password_escaped}@|" .env
 
         # Clean up backup files
         rm -f .env.bak

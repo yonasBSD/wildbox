@@ -108,7 +108,7 @@ jobs:
       - name: Start Identity Service
         run: |
           cd open-security-identity
-          python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 &
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 &
           IDENTITY_PID=$!
           echo "IDENTITY_PID=$IDENTITY_PID" >> $GITHUB_ENV
         env:
@@ -125,7 +125,7 @@ jobs:
       - name: Start Tools Service
         run: |
           cd open-security-tools
-          python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
           TOOLS_PID=$!
           echo "TOOLS_PID=$TOOLS_PID" >> $GITHUB_ENV
         env:
