@@ -9,12 +9,7 @@ Security Model:
 - Gateway performs authentication (API key or JWT validation)
 - Gateway injects X-Wildbox-* headers after successful auth
 - This service trusts these headers (they're never exposed externally)
-- Legacy Bearer token support maintained during migration period
-
-Migration Strategy:
-- Priority 1: Check for gateway headers (X-Wildbox-User-ID, etc.)
-- Priority 2: Fall back to Bearer token (legacy authentication)
-- This allows gradual migration without breaking existing clients
+- All requests MUST pass through the gateway; direct access is rejected
 """
 
 import logging
@@ -53,25 +48,20 @@ async def get_current_user(
     x_wildbox_role: Optional[str] = Header(None),
 ) -> GatewayUser:
     """
-    Get current user from gateway headers or legacy Bearer token.
-    
-    Authentication Priority:
-    1. Gateway headers (X-Wildbox-*) - PREFERRED
-    2. Bearer token - LEGACY (for backward compatibility during migration)
-    
+    Get current user from gateway-injected headers.
+
     Args:
         x_wildbox_user_id: User ID injected by gateway
         x_wildbox_team_id: Team ID injected by gateway
         x_wildbox_plan: Subscription plan injected by gateway
         x_wildbox_role: User role injected by gateway
-        authorization: Legacy Bearer token (optional)
-    
+
     Returns:
         GatewayUser: Authenticated user information
-    
+
     Raises:
-        HTTPException: 401 if authentication fails
-        HTTPException: 403 if gateway bypass attempt detected
+        HTTPException: 401 if no gateway headers present
+        HTTPException: 403 if gateway headers have invalid format
     """
     
     # Priority 1: Check for gateway headers

@@ -65,7 +65,7 @@ DEFAULT_SOURCES = [
         "enabled": False,  # Requires API key
         "collection_interval": 3600,
         "config": {
-            "api_key": "your-api-key-here"
+            "api_key": "CONFIGURE_VIA_ENV"
         },
         "headers": {
             "Accept": "application/json"
@@ -73,7 +73,7 @@ DEFAULT_SOURCES = [
         "auth_config": {
             "type": "api_key",
             "header": "Key",
-            "key": "your-api-key-here"
+            "key": "CONFIGURE_VIA_ENV"
         }
     },
     {
@@ -84,7 +84,7 @@ DEFAULT_SOURCES = [
         "enabled": False,  # Requires API key and domain list
         "collection_interval": 14400,  # Every 4 hours
         "config": {
-            "api_key": "your-api-key-here",
+            "api_key": "CONFIGURE_VIA_ENV",
             "domains": []  # List of domains to check
         },
         "headers": {},

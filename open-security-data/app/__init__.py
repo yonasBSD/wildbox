@@ -5,9 +5,6 @@ Threat intelligence and IOC management platform
 
 __version__ = "0.1.6"
 __author__ = "Wildbox Security"
-
-__version__ = "0.1.5"
-__author__ = "Wildbox Security"
 __email__ = "security@wildbox.dev"
 __description__ = "Security Data Lake Platform"
 

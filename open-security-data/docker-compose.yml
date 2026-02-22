@@ -13,15 +13,15 @@ services:
     container_name: securitydata-postgres
     environment:
       POSTGRES_DB: securitydata
-      POSTGRES_USER: secdata
-      POSTGRES_PASSWORD: secdata123
+      POSTGRES_USER: ${POSTGRES_USER:-secdata}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U secdata -d securitydata"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-secdata} -d securitydata"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -33,12 +33,12 @@ services:
     image: redis:7-alpine
     container_name: securitydata-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16 --requirepass ${REDIS_PASSWORD:-changeme}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "$${REDIS_PASSWORD:-changeme}", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -51,14 +51,16 @@ services:
       dockerfile: Dockerfile
     container_name: securitydata-api
     environment:
-      - DATABASE_URL=postgresql://secdata:secdata123@postgres:5432/securitydata
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-secdata}:${POSTGRES_PASSWORD:?err}@postgres:5432/securitydata
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
       - API_HOST=0.0.0.0
       - API_PORT=8002
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
     ports:
-      - "8002:8002"
+      - "127.0.0.1:8002:8002"
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,14 +83,16 @@ services:
       dockerfile: Dockerfile
     container_name: securitydata-scheduler
     environment:
-      - DATABASE_URL=postgresql://secdata:secdata123@postgres:5432/securitydata
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-secdata}:${POSTGRES_PASSWORD:?err}@postgres:5432/securitydata
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-changeme}@redis:6379/0
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
       - COLLECTION_ENABLED=true
       - COLLECTION_INTERVAL=3600
       - MAX_CONCURRENT_COLLECTORS=5
     command: python -m app.scheduler.main
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       postgres:
         condition: service_healthy

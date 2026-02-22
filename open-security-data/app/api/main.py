@@ -3,15 +3,17 @@ FastAPI application for serving security data
 """
 
 import logging
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional, Union
 from contextlib import asynccontextmanager
 import uuid
 
-from fastapi import FastAPI, HTTPException, Depends, Query, Path, status
+from fastapi import FastAPI, HTTPException, Depends, Query, Path, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
 import uvicorn
@@ -54,11 +56,23 @@ app = FastAPI(
     """,
     version="0.1.6",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if config.environment == "development" else None,
+    redoc_url="/redoc" if config.environment == "development" else None
 )
 
+# Security headers middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
 # Add middleware
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 if config.api.cors_enabled:
@@ -66,9 +80,12 @@ if config.api.cors_enabled:
         CORSMiddleware,
         allow_origins=config.api.cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Wildbox-User-ID", "X-Wildbox-Team-ID", "X-Wildbox-Plan", "X-Wildbox-Role"],
     )
+
+# UUID validation regex for path parameters
+UUID_REGEX = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
 
 # Dependency to get database session
 def get_db():
@@ -85,8 +102,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "version": "0.1.5"
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 # Statistics endpoint
@@ -153,11 +169,12 @@ async def search_indicators(
         query = query.filter(Indicator.active == True)
     
     if q:
-        # Search in value, description, and tags
+        # Escape SQL LIKE wildcards in user input to prevent pattern injection
+        escaped_q = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         search_filter = or_(
-            Indicator.value.ilike(f"%{q}%"),
-            Indicator.normalized_value.ilike(f"%{q}%"),
-            Indicator.description.ilike(f"%{q}%")
+            Indicator.value.ilike(f"%{escaped_q}%", escape="\\"),
+            Indicator.normalized_value.ilike(f"%{escaped_q}%", escape="\\"),
+            Indicator.description.ilike(f"%{escaped_q}%", escape="\\")
         )
         query = query.filter(search_filter)
     
@@ -201,12 +218,12 @@ async def search_indicators(
 # Get specific indicator
 @app.get("/api/v1/indicators/{indicator_id}", response_model=IndicatorDetail, tags=["Indicators"])
 async def get_indicator(
-    indicator_id: str = Path(..., description="Indicator ID"),
+    indicator_id: str = Path(..., description="Indicator ID", pattern=UUID_REGEX),
     current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get detailed information about a specific indicator"""
-    
+
     indicator = db.query(Indicator).filter(Indicator.id == indicator_id).first()
     
     if not indicator:
@@ -669,17 +686,16 @@ async def ingest_telemetry_batch(
             events_ingested += 1
             
         except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
-            errors.append(f"Event {i}: {str(e)}")
+            errors.append(f"Event {i}: processing failed")
             logger.error(f"Failed to ingest event {i} in batch {batch_id}: {e}")
-    
+
     try:
         db.commit()
         logger.info(f"Ingested batch {batch_id}: {events_ingested}/{len(batch.events)} events")
     except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
         db.rollback()
-        error_msg = f"Failed to commit batch {batch_id}: {str(e)}"
-        errors.append(error_msg)
-        logger.error(error_msg)
+        errors.append(f"Batch commit failed")
+        logger.error(f"Failed to commit batch {batch_id}: {e}")
         events_ingested = 0
     
     return TelemetryBatchResponse(
@@ -754,7 +770,7 @@ async def get_sensor(
     if not sensor:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Sensor {sensor_id} not found"
+            detail="Sensor not found"
         )
     
     return sensor
