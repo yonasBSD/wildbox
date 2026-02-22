@@ -1,5 +1,5 @@
 # FastAPI and web framework
-fastapi>=0.115.0,<0.116.0
+fastapi>=0.116.0,<1.0.0
 uvicorn[standard]>=0.32.0,<0.33.0
 
 # Database and ORM
@@ -10,7 +10,7 @@ alembic>=1.14.0,<1.15.0
 
 # Authentication and user management
 fastapi-users[sqlalchemy]>=15.0.0,<16.0.0
-python-multipart>=0.0.20,<0.1.0
+python-multipart>=0.0.22,<0.1.0
 passlib[bcrypt]>=1.7.4,<1.8.0
 
 # Billing integration
@@ -25,7 +25,11 @@ email-validator>=2.1.0,<3.0.0
 httpx>=0.25.0,<0.26.0
 
 # Security - constrain cryptography for compatibility
-cryptography>=44.0.0,<45.0.0
+cryptography>=46.0.0,<47.0.0
+
+# Explicit security constraints for transitive deps
+starlette>=0.52.0,<1.0.0
+urllib3>=2.6.3,<3.0.0
 
 # Testing
 pytest>=7.4.0,<8.0.0
