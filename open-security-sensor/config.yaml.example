@@ -3,8 +3,8 @@
 # Data Lake Connection
 data_lake:
   endpoint: "http://open-security-data:8002/api/v1/ingest"
-  api_key: "sensor-api-key-2025"
-  tls_verify: false
+  api_key: "CONFIGURE_VIA_ENV"  # Set via SENSOR_DATA_LAKE_API_KEY env var
+  tls_verify: true
   batch_size: 100
   flush_interval: 30
   timeout: 30

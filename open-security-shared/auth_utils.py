@@ -5,6 +5,7 @@ This module provides reusable authentication functions and dependencies
 for all FastAPI services in the Wildbox platform.
 """
 
+import hmac
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from functools import lru_cache
@@ -160,7 +161,7 @@ async def verify_api_key(
             detail="API key validation not configured"
         )
 
-    if api_key not in valid_keys:
+    if not any(hmac.compare_digest(api_key, valid_key) for valid_key in valid_keys):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid API key"

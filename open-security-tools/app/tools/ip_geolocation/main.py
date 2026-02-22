@@ -337,7 +337,7 @@ async def execute_tool(params: IPGeolocationInput) -> IPGeolocationOutput:
             accuracy_radius=None,
             data_sources=[],
             timestamp=datetime.now(),
-            error=str(e)
+            error="IP geolocation lookup failed"
         )
 
 

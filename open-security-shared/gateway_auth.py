@@ -135,14 +135,28 @@ async def get_user_from_gateway_headers(
     # Validate plan
     valid_plans = {"free", "pro", "business", "enterprise"}
     if plan not in valid_plans:
-        logger.warning(f"Unknown subscription plan: {plan}, defaulting to free")
-        plan = "free"
-    
+        logger.error(f"Invalid subscription plan in gateway headers: {plan!r}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "Invalid authentication headers",
+                "message": "Gateway provided invalid subscription plan",
+                "code": "INVALID_GATEWAY_HEADERS"
+            }
+        )
+
     # Validate role
     valid_roles = {"owner", "admin", "member", "viewer"}
     if role not in valid_roles:
-        logger.warning(f"Unknown role: {role}, defaulting to member")
-        role = "member"
+        logger.error(f"Invalid role in gateway headers: {role!r}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": "Invalid authentication headers",
+                "message": "Gateway provided invalid user role",
+                "code": "INVALID_GATEWAY_HEADERS"
+            }
+        )
     
     logger.debug(f"Gateway auth successful: user={user_id}, team={team_id}, plan={plan}, role={role}")
     

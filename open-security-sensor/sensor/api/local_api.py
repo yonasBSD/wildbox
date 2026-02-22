@@ -140,8 +140,9 @@ class LocalAPI:
                         status=401
                     )
                 
+                import hmac
                 provided_key = auth_header[7:] if auth_header.startswith('Bearer ') else api_key
-                if provided_key != self.config.network.api_key:
+                if not hmac.compare_digest(provided_key, self.config.network.api_key):
                     return web.json_response(
                         {'error': 'Invalid API key'},
                         status=403
@@ -154,9 +155,7 @@ class LocalAPI:
         """Health check endpoint"""
         health_data = {
             'status': 'healthy' if self.agent.running else 'unhealthy',
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'version': '1.0.0',
-            'uptime_seconds': self.agent.stats.get('uptime_seconds', 0)
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
         
         status_code = 200 if self.agent.running else 503
@@ -170,7 +169,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error getting status: {e}")
             return web.json_response(
-                {'error': 'Failed to get status', 'details': str(e)},
+                {'error': 'Failed to get status'},
                 status=500
             )
     
@@ -211,7 +210,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error getting config: {e}")
             return web.json_response(
-                {'error': 'Failed to get configuration', 'details': str(e)},
+                {'error': 'Failed to get configuration'},
                 status=500
             )
     
@@ -228,7 +227,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error updating config: {e}")
             return web.json_response(
-                {'error': 'Failed to update configuration', 'details': str(e)},
+                {'error': 'Failed to update configuration'},
                 status=500
             )
     
@@ -244,7 +243,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error reloading config: {e}")
             return web.json_response(
-                {'error': 'Failed to reload configuration', 'details': str(e)},
+                {'error': 'Failed to reload configuration'},
                 status=500
             )
     
@@ -267,7 +266,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error validating config: {e}")
             return web.json_response(
-                {'error': 'Failed to validate configuration', 'details': str(e)},
+                {'error': 'Failed to validate configuration'},
                 status=500
             )
     
@@ -296,7 +295,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error executing query: {e}")
             return web.json_response(
-                {'error': 'Failed to execute query', 'details': str(e)},
+                {'error': 'Failed to execute query'},
                 status=500
             )
     
@@ -324,7 +323,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error listing queries: {e}")
             return web.json_response(
-                {'error': 'Failed to list queries', 'details': str(e)},
+                {'error': 'Failed to list queries'},
                 status=500
             )
     
@@ -353,7 +352,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error getting component status: {e}")
             return web.json_response(
-                {'error': 'Failed to get component status', 'details': str(e)},
+                {'error': 'Failed to get component status'},
                 status=500
             )
     
@@ -368,7 +367,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error getting stats: {e}")
             return web.json_response(
-                {'error': 'Failed to get statistics', 'details': str(e)},
+                {'error': 'Failed to get statistics'},
                 status=500
             )
     
@@ -424,7 +423,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error getting dashboard metrics: {e}")
             return web.json_response(
-                {'error': 'Failed to get dashboard metrics', 'details': str(e)},
+                {'error': 'Failed to get dashboard metrics'},
                 status=500
             )
     
@@ -443,7 +442,7 @@ class LocalAPI:
         except Exception as e:
             logger.error(f"Error testing connection: {e}")
             return web.json_response(
-                {'error': 'Failed to test connection', 'details': str(e)},
+                {'error': 'Failed to test connection'},
                 status=500
             )
     
