@@ -190,35 +190,32 @@ async def health_check():
             "status": "healthy", 
             "response_time_ms": round(db_time, 2)
         }
-    except OperationalError as e:
+    except OperationalError:
         health_status["status"] = "unhealthy"
-        health_status["checks"]["database"] = {
-            "status": "unhealthy", 
-            "error": "Database connection failed",
-            "details": str(e)
-        }
-    except SQLAlchemyError as e:
+        health_status["checks"]["database"] = {"status": "unhealthy"}
+    except SQLAlchemyError:
         health_status["status"] = "degraded"
-        health_status["checks"]["database"] = {
-            "status": "degraded",
-            "error": "Database query error",
-            "details": str(e)
-        }
-    except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
+        health_status["checks"]["database"] = {"status": "degraded"}
+    except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError):
         health_status["status"] = "unhealthy"
-        health_status["checks"]["database"] = {
-            "status": "unhealthy",
-            "error": "Unexpected database error",
-            "details": str(type(e).__name__)
-        }
+        health_status["checks"]["database"] = {"status": "unhealthy"}
     
     return health_status
 
 
 @app.get("/metrics")
-async def get_metrics():
-    """Metrics endpoint for Prometheus/monitoring."""
+async def get_metrics(request: Request):
+    """Metrics endpoint for Prometheus/monitoring. Requires gateway secret."""
     import time
+    from fastapi import HTTPException, status as http_status
+
+    # Require gateway secret for metrics access
+    gateway_secret = request.headers.get("X-Gateway-Secret", "")
+    if not settings.gateway_internal_secret or not gateway_secret:
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    import hmac
+    if not hmac.compare_digest(gateway_secret, settings.gateway_internal_secret):
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail="Forbidden")
     
     try:
         from .database import get_db

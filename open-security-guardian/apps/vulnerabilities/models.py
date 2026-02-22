@@ -443,13 +443,27 @@ class VulnerabilityHistory(models.Model):
         return f"{self.vulnerability.title}: {self.field_name} changed"
 
 
+def validate_attachment_file(value):
+    """Validate uploaded file type and size."""
+    import os
+    ALLOWED_EXTENSIONS = {'.txt', '.log', '.pdf', '.png', '.jpg', '.jpeg', '.csv', '.json', '.xml', '.html', '.md', '.zip'}
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+    ext = os.path.splitext(value.name)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        from django.core.exceptions import ValidationError
+        raise ValidationError(f"File type '{ext}' is not allowed. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}")
+    if value.size > MAX_FILE_SIZE:
+        from django.core.exceptions import ValidationError
+        raise ValidationError(f"File size {value.size} exceeds maximum of {MAX_FILE_SIZE} bytes.")
+
+
 class VulnerabilityAttachment(models.Model):
     """File attachments for vulnerabilities"""
     vulnerability = models.ForeignKey(Vulnerability, on_delete=models.CASCADE, related_name='attachments')
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    
+
     # File details
-    file = models.FileField(upload_to='vulnerability_attachments/%Y/%m/%d/')
+    file = models.FileField(upload_to='vulnerability_attachments/%Y/%m/%d/', validators=[validate_attachment_file])
     filename = models.CharField(max_length=255)
     file_size = models.PositiveIntegerField()
     content_type = models.CharField(max_length=100)

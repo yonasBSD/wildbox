@@ -44,11 +44,13 @@ class GatewayUser:
         return self.__str__()
     
     def has_perm(self, perm):
-        """Check if user has permission (basic implementation)."""
-        # Admin role has all permissions
+        """Check if user has permission."""
+        # Owner/admin have all permissions
         if self.role in ["owner", "admin"]:
             return True
-        # Members have read permissions
+        # Members only get basic view permissions, not view_all_*
+        if "view_all" in perm:
+            return False
         if "view" in perm or "read" in perm:
             return True
         return False

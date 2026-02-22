@@ -148,7 +148,7 @@ async def health_check():
 
 
 @app.get("/v1/playbooks", response_model=PlaybookListResponse)
-async def list_playbooks():
+async def list_playbooks(current_user: GatewayUser = Depends(get_current_user)):
     """List all available playbooks"""
     try:
         playbooks_list = playbook_parser.list_playbooks()
@@ -214,7 +214,7 @@ async def execute_playbook(
 
 
 @app.get("/v1/runs/{run_id}", response_model=PlaybookExecutionResult)
-async def get_execution_status(run_id: str):
+async def get_execution_status(run_id: str, current_user: GatewayUser = Depends(get_current_user)):
     """Get execution status and results"""
     try:
         execution_result = workflow_engine.get_execution_state(run_id)
@@ -238,7 +238,7 @@ async def get_execution_status(run_id: str):
 
 
 @app.post("/v1/playbooks/reload")
-async def reload_playbooks():
+async def reload_playbooks(current_user: GatewayUser = Depends(get_current_user)):
     """Reload playbooks from disk"""
     try:
         playbooks = playbook_parser.reload_playbooks()
@@ -256,7 +256,7 @@ async def reload_playbooks():
 
 
 @app.get("/v1/connectors")
-async def list_connectors():
+async def list_connectors(current_user: GatewayUser = Depends(get_current_user)):
     """List all available connectors and their actions"""
     try:
         connectors = connector_registry.list_connectors()
@@ -273,7 +273,7 @@ async def list_connectors():
 
 
 @app.delete("/v1/runs/{run_id}")
-async def cancel_execution(run_id: str):
+async def cancel_execution(run_id: str, current_user: GatewayUser = Depends(get_current_user)):
     """Cancel a running execution"""
     try:
         # For now, we'll just mark it as cancelled in Redis

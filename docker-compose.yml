@@ -309,7 +309,7 @@ services:
       - REDIS_URL=${GUARDIAN_REDIS_URL:-redis://wildbox-redis:6379/1}
       - CELERY_BROKER_URL=${GUARDIAN_CELERY_BROKER_URL:-redis://wildbox-redis:6379/1}
       - CELERY_RESULT_BACKEND=${GUARDIAN_CELERY_RESULT_BACKEND:-redis://wildbox-redis:6379/1}
-      - DEBUG=true
+      - DEBUG=${DEBUG:-false}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FILE=/app/logs/guardian.log
       - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,open-security-guardian
@@ -407,10 +407,9 @@ services:
     image: ollama/ollama:0.4.7
     container_name: wildbox-llm
     restart: unless-stopped
-    ports:
-      - "11434:11434"
+    # SECURITY: Ollama only accessible within Docker network, not exposed to host
     environment:
-      - OLLAMA_ORIGINS=*
+      - OLLAMA_ORIGINS=http://open-security-agents:8006
     volumes:
       - llm_cache:/root/.ollama
     deploy:
@@ -496,11 +495,11 @@ services:
       - ./open-security-sensor/config.yaml.example:/etc/security-sensor/config.yaml:ro
       - sensor_logs:/var/log/security-sensor
       - sensor_data:/var/lib/security-sensor
-      # Host monitoring (required for system telemetry)
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /etc:/host/etc:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Host monitoring (limited to safe read-only paths)
+      - /proc/stat:/host/proc/stat:ro
+      - /proc/meminfo:/host/proc/meminfo:ro
+      - /proc/loadavg:/host/proc/loadavg:ro
+      - /sys/class/net:/host/sys/class/net:ro
     networks:
       - wildbox
     healthcheck:
@@ -528,7 +527,7 @@ services:
       - WEBHOOK_URL=http://localhost:5678
       - DB_TYPE=sqlite
       - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
-      - N8N_SECURE_COOKIE=false
+      - N8N_SECURE_COOKIE=true
       - N8N_METRICS=true
     deploy:
       resources:
@@ -540,7 +539,6 @@ services:
           memory: 512M
     volumes:
       - ./open-security-automations/n8n-data:/home/node/.n8n
-      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - wildbox
     healthcheck:

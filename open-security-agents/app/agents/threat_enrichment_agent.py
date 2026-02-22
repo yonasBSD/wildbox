@@ -137,10 +137,14 @@ Begin your investigation by thinking through your approach, then systematically 
         start_time = datetime.now(timezone.utc)
         
         try:
-            logger.info(f"Starting analysis of {ioc['type']} IOC: {ioc['value']}")
-            
+            # Sanitize IOC value to prevent prompt injection
+            import re
+            ioc_type = re.sub(r'[^a-zA-Z0-9_-]', '', str(ioc['type']))[:50]
+            ioc_value = re.sub(r'[^\w.:\-/@\[\]%]', '', str(ioc['value']))[:500]
+            logger.info(f"Starting analysis of {ioc_type} IOC: {ioc_value}")
+
             # Prepare input for the agent
-            input_text = f"Please investigate this {ioc['type']} IOC: {ioc['value']}"
+            input_text = f"Please investigate this {ioc_type} IOC: {ioc_value}"
             
             # Execute the agent (protected by circuit breaker)
             if OPENAI_BREAKER is not None:

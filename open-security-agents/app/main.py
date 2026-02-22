@@ -310,12 +310,9 @@ async def analyze_ioc(
 
 
 @app.get("/v1/analyze/{task_id}")
-async def get_analysis_result(task_id: str):
+async def get_analysis_result(task_id: str, user: GatewayUser = Depends(get_current_user)):
     """
-    Get the status and results of an analysis task
-    
-    Returns the current status of the task. If completed, returns the full
-    analysis result including the AI-generated report.
+    Get the status and results of an analysis task. Requires authentication.
     """
     try:
         # Get Celery task ID

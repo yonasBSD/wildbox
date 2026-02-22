@@ -79,9 +79,20 @@ async def create_checkout_session(
             detail="Only team owners can manage subscriptions"
         )
     
-    # Set default URLs if not provided
+    # Set default URLs if not provided, validate against frontend_url to prevent open redirects
     success_url = request.success_url or f"{settings.frontend_url}/billing/success"
     cancel_url = request.cancel_url or f"{settings.frontend_url}/billing/cancel"
+
+    if not success_url.startswith(settings.frontend_url):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="success_url must be on the configured frontend domain"
+        )
+    if not cancel_url.startswith(settings.frontend_url):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="cancel_url must be on the configured frontend domain"
+        )
     
     # Create checkout session
     checkout_url = await billing_service.create_checkout_session(

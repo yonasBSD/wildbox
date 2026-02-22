@@ -55,15 +55,20 @@ async def authorize_request(
         Authorization response with user info, permissions, and rate limits
     """
     # Validate gateway secret: only the gateway should call this endpoint
-    if settings.gateway_internal_secret:
-        if not x_gateway_secret or not hmac.compare_digest(
-            x_gateway_secret, settings.gateway_internal_secret
-        ):
-            logger.warning("Unauthorized /authorize call: invalid or missing gateway secret")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid gateway secret"
-            )
+    if not settings.gateway_internal_secret:
+        logger.error("GATEWAY_INTERNAL_SECRET not configured - rejecting /authorize call")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service misconfigured"
+        )
+    if not x_gateway_secret or not hmac.compare_digest(
+        x_gateway_secret, settings.gateway_internal_secret
+    ):
+        logger.warning("Unauthorized /authorize call: invalid or missing gateway secret")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid gateway secret"
+        )
     
     try:
         if request_data.token_type == "bearer":

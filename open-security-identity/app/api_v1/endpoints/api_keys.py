@@ -48,8 +48,11 @@ async def get_team_and_check_permission(
     
     team, membership = row
     
-    # Check permissions (owner can do anything, admin can manage keys)
-    if membership.role not in [TeamRole.OWNER, required_role]:
+    # Role hierarchy: OWNER > ADMIN > MEMBER
+    role_hierarchy = {TeamRole.OWNER: 3, TeamRole.ADMIN: 2, TeamRole.MEMBER: 1}
+    user_level = role_hierarchy.get(membership.role, 0)
+    required_level = role_hierarchy.get(required_role, 0)
+    if user_level < required_level:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions"

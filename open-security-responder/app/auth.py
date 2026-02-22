@@ -51,7 +51,6 @@ async def get_current_user(
     x_wildbox_team_id: Optional[str] = Header(None),
     x_wildbox_plan: Optional[str] = Header(None),
     x_wildbox_role: Optional[str] = Header(None),
-    authorization: Optional[str] = Header(None),
 ) -> GatewayUser:
     """
     Get current user from gateway headers or legacy Bearer token.
@@ -100,61 +99,13 @@ async def get_current_user(
                 detail="Invalid authentication headers - possible bypass attempt"
             )
     
-    # Priority 2: Legacy Bearer token authentication (during migration)
-    if authorization:
-        parts = authorization.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            token = parts[1]
-            
-            # For migration period: Accept any valid Bearer token format
-            # TODO: Remove this once all clients use gateway authentication
-            logger.warning(f"⚠️ Legacy Bearer token authentication used - migrate to API keys")
-            
-            # Return a system user for legacy tokens
-            # In production, this should validate with identity service
-            from uuid import uuid4
-            return GatewayUser(
-                user_id=uuid4(),  # Placeholder - would come from token validation
-                team_id=uuid4(),  # Placeholder - would come from token validation
-                plan="enterprise",  # Grant enterprise access during migration
-                role="admin"  # Grant admin role during migration
-            )
-    
     # No valid authentication found
-    logger.error("❌ Authentication failed - no gateway headers or valid Bearer token")
+    logger.error("Authentication failed - no gateway headers provided")
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Authentication required. Use X-API-Key header or contact support.",
         headers={"WWW-Authenticate": "Bearer"}
     )
-
-
-async def verify_bearer_token(token: str) -> dict:
-    """
-    Verify Bearer token with identity service.
-    
-    LEGACY FUNCTION - Used during migration period only.
-    New code should rely on gateway authentication.
-    
-    Args:
-        token: JWT or API token to verify
-    
-    Returns:
-        dict: User information from identity service
-    
-    Raises:
-        HTTPException: 401 if token is invalid
-    """
-    # TODO: Call identity service to validate token
-    # For now, accept any token during migration
-    logger.warning("⚠️ verify_bearer_token called - legacy authentication path")
-    
-    return {
-        "user_id": "legacy-user",
-        "team_id": "legacy-team",
-        "plan": "enterprise",
-        "role": "admin"
-    }
 
 
 # Dependency factories for plan-based and role-based access control

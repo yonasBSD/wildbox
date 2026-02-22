@@ -91,7 +91,7 @@ async def health_check():
 
 # Statistics endpoint
 @app.get("/api/v1/stats", response_model=SystemStats, tags=["Statistics"])
-async def get_statistics(db: Session = Depends(get_db)):
+async def get_statistics(current_user: GatewayUser = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get system statistics"""
     
     # Count indicators by type
@@ -202,6 +202,7 @@ async def search_indicators(
 @app.get("/api/v1/indicators/{indicator_id}", response_model=IndicatorDetail, tags=["Indicators"])
 async def get_indicator(
     indicator_id: str = Path(..., description="Indicator ID"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get detailed information about a specific indicator"""
@@ -271,6 +272,7 @@ async def get_indicator(
 @app.post("/api/v1/indicators/lookup", response_model=BulkLookupResponse, tags=["Indicators"])
 async def bulk_lookup(
     request: BulkLookupRequest,
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Perform bulk lookup of indicators"""
@@ -316,6 +318,7 @@ async def bulk_lookup(
 @app.get("/api/v1/ips/{ip_address}", response_model=IPIntelligence, tags=["IP Intelligence"])
 async def get_ip_intelligence(
     ip_address: str = Path(..., description="IP address"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get intelligence about an IP address"""
@@ -369,6 +372,7 @@ async def get_ip_intelligence(
 @app.get("/api/v1/domains/{domain}", response_model=DomainIntelligence, tags=["Domain Intelligence"])
 async def get_domain_intelligence(
     domain: str = Path(..., description="Domain name"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get intelligence about a domain"""
@@ -424,6 +428,7 @@ async def get_domain_intelligence(
 @app.get("/api/v1/hashes/{file_hash}", response_model=HashIntelligence, tags=["File Intelligence"])
 async def get_hash_intelligence(
     file_hash: str = Path(..., description="File hash"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get intelligence about a file hash"""
@@ -479,6 +484,7 @@ async def get_hash_intelligence(
 @app.get("/api/v1/sources", response_model=List[SourceInfo], tags=["Sources"])
 async def list_sources(
     enabled_only: bool = Query(True, description="Show only enabled sources"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """List data sources"""
@@ -509,6 +515,7 @@ async def realtime_feed(
     threat_types: Optional[List[str]] = Query(None, description="Filter by threat types"),
     min_severity: Optional[int] = Query(None, ge=1, le=10, description="Minimum severity"),
     since_minutes: int = Query(60, ge=1, le=1440, description="Minutes to look back"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Real-time threat intelligence feed"""
@@ -561,7 +568,7 @@ async def realtime_feed(
 
 # Dashboard metrics endpoint
 @app.get("/api/v1/dashboard/threat-intel", tags=["Dashboard"])
-async def get_threat_intel_metrics(db: Session = Depends(get_db)):
+async def get_threat_intel_metrics(current_user: GatewayUser = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get threat intelligence metrics for dashboard"""
     
     # Count active and total sources (feeds)
@@ -609,6 +616,7 @@ async def get_threat_intel_metrics(db: Session = Depends(get_db)):
 @app.post("/api/v1/ingest", response_model=TelemetryBatchResponse, tags=["Telemetry"])
 async def ingest_telemetry_batch(
     batch: TelemetryBatch,
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -690,6 +698,7 @@ async def get_telemetry_events(
     end_time: Optional[datetime] = Query(None, description="End time filter"),
     limit: int = Query(100, le=1000, description="Maximum number of events to return"),
     offset: int = Query(0, description="Number of events to skip"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -715,6 +724,7 @@ async def get_telemetry_events(
 @app.get("/api/v1/sensors", response_model=List[SensorMetadata], tags=["Telemetry"])
 async def get_sensors(
     active_only: bool = Query(True, description="Return only active sensors"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -731,6 +741,7 @@ async def get_sensors(
 @app.get("/api/v1/sensors/{sensor_id}", response_model=SensorMetadata, tags=["Telemetry"])
 async def get_sensor(
     sensor_id: str = Path(..., description="Sensor ID"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -752,6 +763,7 @@ async def get_sensor(
 async def get_telemetry_stats(
     sensor_id: Optional[str] = Query(None, description="Filter by sensor ID"),
     hours: int = Query(24, description="Time window in hours"),
+    current_user: GatewayUser = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

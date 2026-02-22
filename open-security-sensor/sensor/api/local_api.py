@@ -45,9 +45,10 @@ class LocalAPI:
             # Create aiohttp application
             self.app = web.Application()
             
-            # Setup CORS
+            # Setup CORS - restricted to localhost only
+            allowed_origin = f"http://{self.config.network.bind_address}:{self.config.network.bind_port}"
             cors = aiohttp_cors.setup(self.app, defaults={
-                "*": aiohttp_cors.ResourceOptions(
+                allowed_origin: aiohttp_cors.ResourceOptions(
                     allow_credentials=True,
                     expose_headers="*",
                     allow_headers="*",

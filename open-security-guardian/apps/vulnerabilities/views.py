@@ -61,12 +61,15 @@ class VulnerabilityViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter queryset based on user permissions"""
         queryset = super().get_queryset()
-        
+
         # Filter by asset permissions if user doesn't have global access
         if not self.request.user.has_perm('vulnerabilities.view_all_vulnerabilities'):
-            # Implement asset-based filtering here
-            pass
-        
+            # Non-admin users can only see vulnerabilities assigned to them
+            queryset = queryset.filter(
+                Q(assigned_to=self.request.user) |
+                Q(created_by=self.request.user)
+            )
+
         return queryset
     
     def perform_create(self, serializer):

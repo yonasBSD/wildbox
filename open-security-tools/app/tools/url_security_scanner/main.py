@@ -184,18 +184,40 @@ class URLSecurityScanner:
             encoding_issues=encoding_issues
         )
     
+    @staticmethod
+    def _is_private_ip(hostname: str) -> bool:
+        """Check if hostname resolves to a private/reserved IP address (SSRF protection)"""
+        import socket
+        try:
+            addr = socket.getaddrinfo(hostname, None)[0][4][0]
+            ip = ipaddress.ip_address(addr)
+            return ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local
+        except (socket.gaierror, ValueError):
+            return False
+
     async def analyze_redirects(self, url: str, max_redirects: int, timeout: int) -> RedirectAnalysis:
         """Analyze redirect chain"""
-        
+
         redirect_chain = [url]
         current_url = url
         redirect_count = 0
         security_issues = []
-        
+
+        # SSRF protection: block requests to private/internal IPs
+        import urllib.parse as _urlparse
+        parsed = _urlparse.urlparse(url)
+        if self._is_private_ip(parsed.hostname or ""):
+            return RedirectAnalysis(
+                redirect_count=0,
+                redirect_chain=[url],
+                final_url=url,
+                has_suspicious_redirects=True,
+                redirect_security_issues=["Blocked: target resolves to private/internal IP address"]
+            )
+
         try:
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=timeout),
-                connector=aiohttp.TCPConnector(ssl=False)  # Allow self-signed certs for analysis
             ) as session:
                 
                 while redirect_count < max_redirects:

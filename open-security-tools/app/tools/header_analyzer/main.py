@@ -99,6 +99,18 @@ class HeaderSecurityAnalyzer:
         # Initialize rate limiter for external requests
         self.rate_limiter = RateLimiter(max_requests=10, time_window=60)
     
+    @staticmethod
+    def _is_private_ip(hostname: str) -> bool:
+        """Check if hostname resolves to a private/reserved IP (SSRF protection)"""
+        import socket
+        import ipaddress
+        try:
+            addr = socket.getaddrinfo(hostname, None)[0][4][0]
+            ip = ipaddress.ip_address(addr)
+            return ip.is_private or ip.is_loopback or ip.is_reserved or ip.is_link_local
+        except (socket.gaierror, ValueError):
+            return False
+
     async def analyze_headers(self, url: str, follow_redirects: bool = True) -> Dict[str, Any]:
         """Analyze HTTP headers for security issues"""
         try:
@@ -106,13 +118,12 @@ class HeaderSecurityAnalyzer:
             parsed_url = urlparse(url)
             if not parsed_url.scheme or not parsed_url.netloc:
                 raise ValueError("Invalid URL format")
-            
-            # Create SSL context that allows self-signed certificates for testing
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
+
+            # SSRF protection: block requests to private/internal IPs
+            if self._is_private_ip(parsed_url.hostname or ""):
+                raise ValueError("Blocked: target resolves to private/internal IP address")
+
+            connector = aiohttp.TCPConnector()
             
             async with aiohttp.ClientSession(
                 timeout=self.timeout,

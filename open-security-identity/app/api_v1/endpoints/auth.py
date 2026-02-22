@@ -115,13 +115,13 @@ async def _authenticate_user(email: str, password: str, db: AsyncSession) -> dic
     Helper function to authenticate user and return token data.
     Used by both form-based and JSON-based login endpoints.
     """
-    # Check account lockout
+    # Check account lockout - return same error as invalid credentials to prevent enumeration
     if await is_account_locked(email):
         logger.warning(f"AUTH_FAILURE: Locked account login attempt for email={email}")
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Account temporarily locked due to too many failed attempts. "
-                   f"Try again in {settings.account_lockout_minutes} minutes.",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     # Find user by email
