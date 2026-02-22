@@ -7,22 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Replaced all instances of "blacklist/whitelist" with "denylist/allowlist" across documentation
-- Replaced "auto-blacklist" with "auto-denylist" in responder service documentation
-- Replaced "JWT blacklisting" with "JWT denylisting" in architecture documentation
-- Removed "Quick Start (5 minutes)" timing claim - replaced with objective "Quick Start" header
-- Removed optimistic setup time claims from SETUP_GUIDE.md (5 minutes → realistic 2-3 minutes)
-- Removed "5 minutes" claim from website overview documentation
-- Added descriptive alt text to screenshot image in README
-- Added descriptive alt text to website documentation images
-- Fixed broken documentation links in README (QUICKSTART.md → SETUP_GUIDE.md)
-- Defined acronyms on first use in README Features table (RBAC, JWT, CSPM, SOAR, LLM, CVE)
+## [0.5.4] - 2026-02-22
+
+### Security
+- Updated aiohttp 3.12.x/3.13.2 → 3.13.3 across 6 services (fixes 8 CVEs: DoS, zip bomb, path leak)
+- Updated cryptography 44.0.x → 46.0.5 across 7 services (subgroup attack + OpenSSL vulnerability)
+- Updated Django 4.2.26 → 4.2.28 (SQL injection + DoS + timing attack)
+- Updated Pillow 11.1.0 → 12.1.1 (out-of-bounds write on PSD images)
+- Updated nltk 3.9 → 3.9.2 (Zip Slip vulnerability)
+- Updated python-multipart 0.0.20 → 0.0.22 (arbitrary file write)
+- Updated urllib3 2.5.0 → 2.6.3 (decompression bomb bypass)
+- Updated starlette 0.46.2 → 0.52.1 (DoS via Range header + multipart)
+- Updated fastapi 0.115.x → 0.129.2 (to support patched starlette)
+- Updated fastapi-users → 15.0.4 (1-click account takeover fix)
+- Updated axios ^1.7.0 → ^1.13.5 (DoS via `__proto__`)
+- Updated next ^14.2.0 → ^14.2.35 (DoS mitigations)
+- Added npm overrides for minimatch, lodash, diff, mdast-util-to-hast
+- Resolves ~96 of 98 Dependabot alerts
+
+## [0.5.2] - 2026-02-22
+
+### Security
+- Added JWT token revocation via Redis blacklist with JTI claims
+- Implemented account lockout after failed login attempts
+- Added Docker network segmentation (frontend/backend/data layers)
+- Fixed path traversal vulnerability in report generation
+- Added security headers (CSP, HSTS, X-Frame-Options) to Next.js dashboard
+- Replaced hardcoded CI secrets with GitHub Secrets references
+- Pinned Trivy action to specific version (0.28.0) in CI/CD
+- Added PostgreSQL connection pool health checks (pool_pre_ping)
+- Added cookie security settings (httpOnly, sameSite) to Guardian service
+- Fixed TOCTOU race conditions in Stripe webhook handlers (SELECT FOR UPDATE)
+- Added Prometheus alert rules for service health monitoring
+- Migrated external API calls from HTTP to HTTPS
+- Added circuit breaker for OpenAI API resilience
+- Replaced all bare except clauses with specific exception types
+- Removed PostgreSQL port exposure in development docker-compose
+
+### Added
+- `open-security-identity/app/token_blacklist.py` - Redis-based token blacklist and account lockout
+- `open-security-sensor/monitoring/alert_rules.yml` - Prometheus alerting rules
+- `scripts/backup_postgres.sh` - PostgreSQL backup script with encryption
+
+### Removed
+- `.env-e` sed artifact removed from repository
+
+## [0.5.0] - 2026-02-22
+
+### Security
+- Comprehensive security hardening across all microservices
 
 ### Fixed
-- Corrected documentation cross-references to point to actual files
-- Improved image accessibility with descriptive alt text
-- Replaced optimistic timing claims with realistic estimates
+- Pydantic v2 type annotation error in CSPM config
+- Test suite failures: missing services and insufficient timeouts in CI
+
+### Changed
+- Enhanced integration tests for Identity Service authentication flow
+
+## [0.4.0] - 2026-02-22
+
+### Added
+- 8 FAANG-level architectural patterns implementation
+- Comprehensive documentation quality framework
+- Spell check dictionary (100 terms)
+
+### Changed
+- Critical code quality remediation: removed test skips, fixed tests, extracted components
+- Documentation quality improvements (phases 1 and 2, issues 1-35)
+- Documentation quality audit completion report
+- Removed self-congratulatory progress reports from repository root
+
+### Documentation
+- Replaced "blacklist/whitelist" with "denylist/allowlist" across documentation
+- Replaced "JWT blacklisting" with "JWT denylisting" in architecture docs
+- Added descriptive alt text to images for accessibility
+- Fixed broken documentation links (QUICKSTART.md → SETUP_GUIDE.md)
+- Defined acronyms on first use in README (RBAC, JWT, CSPM, SOAR, LLM, CVE)
 
 ## [0.3.2] - 2025-11-24
 
@@ -124,7 +184,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Compose orchestration
 - Dashboard UI with Next.js
 
-[Unreleased]: https://github.com/fabriziosalmi/wildbox/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.4...HEAD
+[0.5.4]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.2...v0.5.4
+[0.5.2]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.0...v0.5.2
+[0.5.0]: https://github.com/fabriziosalmi/wildbox/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/fabriziosalmi/wildbox/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/fabriziosalmi/wildbox/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/fabriziosalmi/wildbox/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/fabriziosalmi/wildbox/compare/v0.2.0...v0.3.0
