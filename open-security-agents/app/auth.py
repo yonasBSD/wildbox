@@ -9,7 +9,7 @@ and injects trusted X-Wildbox-* headers.
 import sys
 import os
 import logging
-from typing import Optional, Union
+from typing import Optional
 from pydantic import BaseModel, UUID4
 
 # Add shared modules to path
@@ -35,42 +35,9 @@ except ImportError:
             frozen = True
 
 from fastapi import Header, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 
 logger = logging.getLogger(__name__)
-security = HTTPBearer(auto_error=False)
-
-
-# Backward compatibility: Legacy Bearer token validation
-# In production, this should be removed once all clients use API keys
-async def verify_bearer_token(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
-) -> str:
-    """
-    Legacy bearer token validation for backward compatibility.
-    
-    WARNING: This bypasses the gateway trust model and should only be used
-    during migration or in development environments.
-    """
-    if not credentials:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required. Provide Bearer token or access via gateway.",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    
-    # In legacy mode, we just validate the token format exists
-    # The gateway will do the real validation
-    if not credentials.credentials:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token format",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
-    
-    logger.warning(f"[AUTH-LEGACY] Bearer token authentication used - consider migrating to gateway auth")
-    return credentials.credentials
 
 
 async def get_current_user(
@@ -78,20 +45,17 @@ async def get_current_user(
     x_wildbox_team_id: Optional[str] = Header(None, alias="X-Wildbox-Team-ID"),
     x_wildbox_plan: Optional[str] = Header(None, alias="X-Wildbox-Plan"),
     x_wildbox_role: Optional[str] = Header(None, alias="X-Wildbox-Role"),
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> GatewayUser:
     """
     Primary authentication dependency for Agents service.
-    
-    Preferred: Gateway authentication via X-Wildbox-* headers
-    Fallback: Legacy Bearer token (returns system user)
-    
+
+    Authenticates via X-Wildbox-* headers injected by the API gateway.
+
     Returns:
         GatewayUser object with user_id, team_id, plan, role
-        
+
     Raises:
         HTTPException 401: No authentication provided
-        HTTPException 403: Direct access attempt (gateway bypass)
     """
     # Priority 1: Gateway headers (production mode)
     if x_wildbox_user_id and x_wildbox_team_id:
@@ -119,35 +83,16 @@ async def get_current_user(
                     detail="Invalid authentication headers from gateway"
                 )
     
-    # Priority 2: Legacy Bearer token (backward compatibility)
-    if credentials and credentials.credentials:
-        logger.warning("[AUTH-FALLBACK] Using legacy Bearer token - migrate to gateway auth")
-        
-        # Return a system user for legacy token
-        # In production, token validation would happen at gateway
-        try:
-            return GatewayUser(
-                user_id="00000000-0000-0000-0000-000000000001",  # System user
-                team_id="00000000-0000-0000-0000-000000000001",  # System team
-                plan="enterprise",  # Legacy tokens get full access during migration
-                role="admin"
-            )
-        except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
-            logger.error(f"[AUTH-ERROR] Legacy auth failed: {e}")
-            raise HTTPException(status_code=401, detail="Authentication failed")
-    
     # No authentication provided
     raise HTTPException(
         status_code=401,
-        detail="Authentication required. Provide Bearer token or access via gateway.",
+        detail="Authentication required. Access via gateway with X-Wildbox-* headers.",
         headers={"WWW-Authenticate": "Bearer"}
     )
 
 
-# Export for backward compatibility
 __all__ = [
     "get_current_user",
-    "verify_bearer_token",  # Legacy
     "GatewayUser"
 ]
 

@@ -58,10 +58,17 @@ class IOCInput(BaseModel):
         }
 
 
+class TaskPriority(str, Enum):
+    """Task priority levels"""
+    LOW = "low"
+    NORMAL = "normal"
+    HIGH = "high"
+
+
 class AnalysisTaskRequest(BaseModel):
     """Request to analyze an IOC"""
     ioc: IOCInput = Field(..., description="IOC to analyze")
-    priority: str = Field(default="normal", description="Task priority (low, normal, high)")
+    priority: TaskPriority = Field(default=TaskPriority.NORMAL, description="Task priority")
     
     class Config:
         schema_extra = {
@@ -134,7 +141,6 @@ class AnalysisResult(BaseModel):
     evidence: List[AnalysisEvidence] = Field(default_factory=list, description="Supporting evidence")
     recommended_actions: List[str] = Field(default_factory=list, description="Recommended actions")
     full_report: str = Field(..., description="Complete analysis report in Markdown")
-    raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw tool outputs")
     analysis_duration: Optional[float] = Field(None, description="Analysis duration in seconds")
     tools_used: List[str] = Field(default_factory=list, description="List of tools used")
     

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, status, Header, Depends
+from fastapi import FastAPI, HTTPException, status, Header, Depends, Path
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -174,8 +174,8 @@ async def health_check():
 
 
 @app.get("/stats", response_model=StatsResponse)
-async def get_stats():
-    """Get service statistics"""
+async def get_stats(user: GatewayUser = Depends(get_current_user)):
+    """Get service statistics. Requires authentication."""
     try:
         # Get Celery stats
         inspect = celery_app.control.inspect()
@@ -229,6 +229,7 @@ async def get_stats():
 @app.post("/v1/analyze", response_model=AnalysisTaskStatus, status_code=status.HTTP_202_ACCEPTED)
 @limiter.limit("5/minute")
 async def analyze_ioc(
+    http_request: Request,
     request: AnalysisTaskRequest,
     user: GatewayUser = Depends(get_current_user)
 ):
@@ -241,7 +242,7 @@ async def analyze_ioc(
     The analysis is performed by an AI agent that uses various security tools
     to investigate the IOC and generate a comprehensive threat intelligence report.
     """
-    logger.info(f"[AUTH] Authenticated user {user.user_id} (team: {user.team_id}, plan: {user.plan}) analyzing IOC: {request.ioc.type}:{request.ioc.value}")
+    logger.info(f"[AUTH] Authenticated user {user.user_id} (team: {user.team_id}) analyzing IOC type: {request.ioc.type}")
     
     try:
         # Generate unique task ID
@@ -283,7 +284,7 @@ async def analyze_ioc(
             str(user.user_id)
         )
         
-        logger.info(f"Started analysis task {task_id} for IOC {request.ioc.type}:{request.ioc.value}")
+        logger.info(f"Started analysis task {task_id} for IOC type: {request.ioc.type}")
         
         # Increment stats
         redis_client.incr("stats:total_analyses")
@@ -310,7 +311,10 @@ async def analyze_ioc(
 
 
 @app.get("/v1/analyze/{task_id}")
-async def get_analysis_result(task_id: str, user: GatewayUser = Depends(get_current_user)):
+async def get_analysis_result(
+    task_id: str = Path(..., regex=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"),
+    user: GatewayUser = Depends(get_current_user)
+):
     """
     Get the status and results of an analysis task. Requires authentication.
     """
@@ -322,10 +326,18 @@ async def get_analysis_result(task_id: str, user: GatewayUser = Depends(get_curr
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Task not found"
             )
-        
+
+        # Verify the task belongs to the requesting user
+        task_owner = redis_client.get(f"task:{task_id}:user_id")
+        if task_owner and task_owner.decode() != str(user.user_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only view your own tasks"
+            )
+
         # Get Celery task result
         celery_task = AsyncResult(celery_task_id.decode(), app=celery_app)
-        
+
         # Get task metadata
         task_metadata_str = redis_client.get(f"task:{task_id}:metadata")
         if task_metadata_str:
@@ -350,10 +362,10 @@ async def get_analysis_result(task_id: str, user: GatewayUser = Depends(get_curr
         if celery_task.state == "SUCCESS" and celery_task.result:
             return AnalysisResult(**celery_task.result)
         
-        # If task failed, include error information
+        # If task failed, return generic error (details are in server logs)
         error_message = None
         if celery_task.state == "FAILURE":
-            error_message = str(celery_task.info) if celery_task.info else "Task failed"
+            error_message = "Analysis failed. Please retry or contact support."
         
         # Return status information
         return AnalysisTaskStatus(
@@ -378,7 +390,10 @@ async def get_analysis_result(task_id: str, user: GatewayUser = Depends(get_curr
 
 
 @app.delete("/v1/analyze/{task_id}")
-async def cancel_analysis(task_id: str, user: GatewayUser = Depends(get_current_user)):
+async def cancel_analysis(
+    task_id: str = Path(..., regex=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"),
+    user: GatewayUser = Depends(get_current_user)
+):
     """Cancel a pending or running analysis task. Requires authentication."""
     try:
         # Verify the task belongs to the requesting user

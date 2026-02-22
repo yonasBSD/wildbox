@@ -66,7 +66,7 @@ def run_threat_enrichment_task(self, task_id: str, ioc: Dict[str, Any]) -> Dict[
     """
     
     try:
-        logger.info(f"Starting threat enrichment task {task_id} for IOC {ioc['type']}:{ioc['value']}")
+        logger.info(f"Starting threat enrichment task {task_id} for IOC type: {ioc['type']}")
         
         # Update task status to running
         self.update_state(
@@ -136,17 +136,16 @@ def run_threat_enrichment_task(self, task_id: str, ioc: Dict[str, Any]) -> Dict[
             meta={"error": str(e)}
         )
         
-        # Return error result
+        # Return error result (no internal details exposed to API consumers)
         return {
             "task_id": task_id,
             "ioc": ioc,
             "verdict": "Informational",
             "confidence": 0.0,
-            "executive_summary": f"Analysis failed: {str(e)}",
+            "executive_summary": "Analysis could not be completed. Please retry or contact support.",
             "evidence": [],
-            "recommended_actions": ["Retry analysis", "Check system configuration"],
-            "full_report": f"# Analysis Failed\n\nThe analysis could not be completed due to an error:\n\n```\n{str(e)}\n```\n\nPlease check the system logs and try again.",
-            "raw_data": {"error": str(e)},
+            "recommended_actions": ["Retry analysis"],
+            "full_report": "# Analysis Failed\n\nThe analysis could not be completed. Please retry or contact support.",
             "analysis_duration": 0.0,
             "tools_used": []
         }

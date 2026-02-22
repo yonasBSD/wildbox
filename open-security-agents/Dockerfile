@@ -15,11 +15,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+
 # Create logs directory
-RUN mkdir -p logs
+RUN mkdir -p logs && chown -R appuser:appuser /app
 
 # Make entrypoint script executable
 RUN chmod +x /app/scripts/entrypoint.sh
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8006

@@ -6,7 +6,6 @@ set -e
 
 echo "Starting Open Security Agents..."
 echo "Environment: ${DEBUG:-production}"
-echo "Redis URL: ${REDIS_URL}"
 echo "OpenAI Model: ${OPENAI_MODEL:-gpt-4o}"
 
 # Start Celery worker in background

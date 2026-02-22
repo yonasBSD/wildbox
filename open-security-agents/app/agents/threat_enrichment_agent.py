@@ -117,7 +117,7 @@ Begin your investigation by thinking through your approach, then systematically 
         return AgentExecutor(
             agent=agent,
             tools=self.tools,
-            verbose=True,
+            verbose=False,
             handle_parsing_errors=True,
             max_iterations=15,  # Prevent infinite loops
             max_execution_time=settings.max_analysis_time_minutes * 60,
@@ -192,11 +192,10 @@ Begin your investigation by thinking through your approach, then systematically 
                 "ioc": ioc,
                 "verdict": "Informational",
                 "confidence": 0.0,
-                "executive_summary": f"Analysis failed due to error: {str(e)}",
+                "executive_summary": "Analysis could not be completed. Please retry or contact support.",
                 "evidence": [],
-                "recommended_actions": ["Retry analysis", "Check system logs"],
-                "full_report": f"# Analysis Error\n\nThe analysis could not be completed due to an error:\n\n```\n{str(e)}\n```",
-                "raw_data": {},
+                "recommended_actions": ["Retry analysis"],
+                "full_report": "# Analysis Error\n\nThe analysis could not be completed. Please retry or contact support.",
                 "analysis_duration": duration,
                 "tools_used": []
             }

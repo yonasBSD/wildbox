@@ -44,7 +44,7 @@ services:
       --max-model-len 4096
       --trust-remote-code
       --dtype auto
-      --api-key wildbox-local-llm
+      --api-key ${LLM_API_KEY:?LLM_API_KEY must be set}
     volumes:
       - llm_cache:/root/.cache/huggingface
     deploy:
@@ -84,7 +84,7 @@ services:
       - WILDBOX_GUARDIAN_URL=http://localhost:8013
       - WILDBOX_RESPONDER_URL=http://localhost:8018
       # Local LLM configuration (containerized vLLM)
-      - OPENAI_API_KEY=wildbox-local-llm
+      - OPENAI_API_KEY=${LLM_API_KEY:?LLM_API_KEY must be set}
       - OPENAI_BASE_URL=http://llm:8000/v1
       - OPENAI_MODEL=qwen3-0.6b
     depends_on:
@@ -120,9 +120,9 @@ services:
 
   celery-flower:
     build: .
-    command: celery -A app.worker flower --port=5555
+    command: celery -A app.worker flower --port=5555 --basic-auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:?FLOWER_PASSWORD must be set}
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
