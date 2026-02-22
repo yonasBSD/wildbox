@@ -1,7 +1,7 @@
 # Wildbox Security Status Report
 
 **Date**: February 22, 2026
-**Version**: v0.5.4
+**Version**: v0.5.5
 **Scope**: Complete security audit, vulnerability remediation, and dependency updates
 **Status**: Security-Hardened
 
@@ -13,11 +13,13 @@
 |--------|-------|
 | **Initial Vulnerabilities (Nov 2024)** | 29 (6 critical, 10 high, 9 moderate, 4 low) |
 | **After Phase 1 Fixes** | 10 (66% reduction) |
-| **Security Audit (Feb 2026)** | 35 additional issues identified across 3 rounds |
+| **Security Audit Rounds 1-3 (Feb 2026)** | 35 issues identified |
 | **Issues Fixed (v0.5.2)** | 35/35 (100%) |
+| **Security Audit Round 4 (Feb 2026)** | 24 issues identified (9 critical, 15 high) |
+| **Issues Fixed (v0.5.5)** | 24/24 (100%) |
 | **Dependabot Alerts (Pre-update)** | 98 |
 | **Dependabot Alerts (Post-update v0.5.4)** | 2 (Next.js, requires breaking migration) |
-| **Overall Reduction** | **98% of known vulnerabilities resolved** |
+| **Overall Reduction** | **99% of known vulnerabilities resolved** |
 
 ---
 
@@ -57,6 +59,44 @@
 | 27 | Incomplete monitoring coverage | MEDIUM | Fixed |
 | 28 | No database backup strategy | MEDIUM | Fixed |
 | 29-35 | Additional infrastructure hardening | LOW-MEDIUM | Fixed |
+
+---
+
+## Security Audit Round 4 (v0.5.5)
+
+### Critical Severity (9)
+
+| # | Issue | Status |
+|---|-------|--------|
+| C1 | Bearer token bypass in data service (grants enterprise/admin) | Fixed |
+| C2 | Bearer token bypass in responder service (grants enterprise/admin) | Fixed |
+| C3 | 5 unauthenticated endpoints in responder service | Fixed |
+| C4 | 14 unauthenticated endpoints in data service | Fixed |
+| C5 | Open redirect via unvalidated billing URLs | Fixed |
+| C6 | Gateway internal secret not mandatory | Fixed |
+| C7 | SSRF in URL security scanner (no private IP filtering) | Fixed |
+| C8 | SSRF in header analyzer (no private IP filtering) | Fixed |
+| C9 | Docker socket mounted in n8n container | Fixed |
+
+### High Severity (15)
+
+| # | Issue | Status |
+|---|-------|--------|
+| H1 | Account enumeration via different HTTP status codes | Fixed |
+| H2 | /metrics endpoint unauthenticated | Fixed |
+| H3 | Health endpoint leaks database error details | Fixed |
+| H4 | CORS wildcard with credentials in sensor | Fixed |
+| H5 | No queryset filtering for non-admin users in Guardian | Fixed |
+| H6 | Flat role check in API key permissions (no hierarchy) | Fixed |
+| H7 | has_perm() grants view_all to members | Fixed |
+| H8 | No file upload validation in Guardian | Fixed |
+| H9 | SSL verification disabled in security tools | Fixed |
+| H10 | Agents GET endpoint unauthenticated | Fixed |
+| H11 | IOC values unsanitized (prompt injection risk) | Fixed |
+| H12 | Sensor mounts full /proc, /sys, docker.sock | Fixed |
+| H13 | Ollama CORS wildcard and exposed port | Fixed |
+| H14 | Guardian DEBUG=true in Docker Compose | Fixed |
+| H15 | N8N_SECURE_COOKIE=false | Fixed |
 
 ---
 
@@ -136,7 +176,7 @@
 | No eval() calls in source code | PASS |
 | No plaintext passwords in code | PASS |
 | CORS configured explicitly (no wildcards) | PASS |
-| Authentication on all critical endpoints | PASS |
+| Authentication on all API endpoints | PASS |
 | No .env files in git repository | PASS |
 | Security headers implemented | PASS |
 | API docs disabled in production | PASS |
@@ -146,6 +186,11 @@
 | CI/CD secrets externalized | PASS |
 | Database not exposed to host | PASS |
 | Bare except clauses eliminated | PASS |
+| SSRF protection on outbound requests | PASS |
+| SSL verification enabled on all tools | PASS |
+| File upload validation enforced | PASS |
+| No Docker socket mounts | PASS |
+| LLM input sanitization | PASS |
 
 ---
 

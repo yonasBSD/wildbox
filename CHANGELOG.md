@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-02-22
+
+### Security
+- Removed Bearer token bypass in data and responder services (granted enterprise/admin to any token)
+- Added authentication to 19 previously unauthenticated endpoints across data, responder, and agents services
+- Added SSRF protection (private IP filtering) to URL scanner and header analyzer tools
+- Added redirect URL validation in billing checkout to prevent open redirects
+- Made gateway internal secret mandatory (no longer falls back to accepting all requests)
+- Fixed account enumeration via different HTTP status codes on login
+- Protected /metrics endpoint with gateway secret authentication
+- Removed detailed database error info from /health endpoint responses
+- Replaced CORS wildcard with localhost-only in sensor service
+- Added asset-based queryset filtering for non-admin users in Guardian
+- Fixed role hierarchy in API key permission checks (OWNER > ADMIN > MEMBER)
+- Fixed has_perm() to deny view_all permissions for member role
+- Added file upload validation (type whitelist + 10MB size limit) in Guardian
+- Enabled SSL verification in security tools (removed ssl=False and CERT_NONE)
+- Sanitized IOC values to mitigate prompt injection in threat enrichment agent
+- Removed Docker socket mount from n8n container
+- Restricted sensor host volume mounts to specific safe paths
+- Restricted Ollama CORS origins and removed host port exposure
+- Set Guardian DEBUG=false by default in Docker Compose
+- Enabled N8N_SECURE_COOKIE in Docker Compose
+
 ## [0.5.4] - 2026-02-22
 
 ### Security
@@ -184,7 +208,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker Compose orchestration
 - Dashboard UI with Next.js
 
-[Unreleased]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.4...HEAD
+[Unreleased]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.2...v0.5.4
 [0.5.2]: https://github.com/fabriziosalmi/wildbox/compare/v0.5.0...v0.5.2
 [0.5.0]: https://github.com/fabriziosalmi/wildbox/compare/v0.4.0...v0.5.0
