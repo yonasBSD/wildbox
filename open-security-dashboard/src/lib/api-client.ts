@@ -41,7 +41,7 @@ class ApiClient {
         } else {
           // Use JWT token for all other services (identity, data, tools, responder, etc.)
           // Gateway validates the JWT and forwards requests with X-Wildbox-* headers
-          const token = Cookies.get('auth_token') || localStorage.getItem('auth_token')
+          const token = Cookies.get('auth_token')
           if (token) {
             config.headers.Authorization = `Bearer ${token}`
           }
@@ -98,10 +98,8 @@ class ApiClient {
       return
     }
 
-    // Clear auth tokens only for non-gateway auth errors
+    // Clear auth cookie for non-gateway auth errors
     Cookies.remove('auth_token')
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user')
     
     // Redirect to login if we're not already there and not on an admin page
     if (typeof window !== 'undefined' &&

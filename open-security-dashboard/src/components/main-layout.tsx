@@ -122,17 +122,10 @@ const baseNavigation: NavigationItem[] = [
 const getNavigation = (user: any): NavigationItem[] => {
   const navigation = [...baseNavigation]
   
-  // Debug logging
-  console.log('getNavigation - user:', user)
-  console.log('getNavigation - is_superuser:', user?.is_superuser)
-  console.log('getNavigation - user email:', user?.email)
-  
-  // Check for superuser or development override
   const isSuperuser = user?.is_superuser
-  
+
   // Add admin navigation for superusers as a separate top-level item
   if (isSuperuser) {
-    console.log('Adding admin navigation for superuser')
     navigation.push({
       name: 'Administration',
       href: '/admin',
@@ -189,7 +182,6 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // If authentication is still loading, show loading state
   if (isLoading) {
-    console.log('🔄 MainLayout: Auth still loading...')
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -203,7 +195,6 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   // If not authenticated, redirect to login (but only after loading is complete)
   if (!isLoading && !isAuthenticated) {
-    console.log('🚫 MainLayout: Not authenticated, showing login prompt')
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -221,7 +212,6 @@ export function MainLayout({ children }: MainLayoutProps) {
     )
   }
 
-  console.log('✅ MainLayout: Authenticated, rendering main content')
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}

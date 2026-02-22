@@ -14,6 +14,7 @@
 
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from '@tanstack/react-query'
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
 // ============================================================================
 // TypeScript Interfaces (matching backend Pydantic schemas)
@@ -76,6 +77,15 @@ const responderClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+})
+
+// Add auth interceptor to include JWT token
+responderClient.interceptors.request.use((config) => {
+  const token = Cookies.get('auth_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 // ============================================================================

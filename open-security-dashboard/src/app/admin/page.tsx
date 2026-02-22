@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { MainLayout } from '@/components/main-layout'
 import { identityClient, getAuthPath, getIdentityPath, dataClient, getDataPath } from '@/lib/api-client'
+import Cookies from 'js-cookie'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -228,15 +229,14 @@ export default function AdminPage() {
     try {
       setIsLoading(true)
       
-      // Debug: Try direct fetch to bypass any ApiClient issues
-      const token = document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
-      
+      const token = Cookies.get('auth_token')
+
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || ''
       const response = await fetch(`${gatewayUrl}/api/v1/identity/admin/users?limit=100`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
       })
       
@@ -296,7 +296,7 @@ export default function AdminPage() {
   const handleDeleteUser = async (userId: string, userEmail: string, forceDelete: boolean = false) => {
     // Check if this is a superuser (except primary superadmin)
     const targetUser = users.find(u => u.id === userId)
-    const isSuperuser = targetUser?.is_superuser && userEmail !== 'superadmin@wildbox.com'
+    const isSuperuser = targetUser?.is_superuser
     
     // First check if the user can be deleted (unless forcing)
     if (!forceDelete) {
@@ -519,15 +519,14 @@ export default function AdminPage() {
     try {
       setIsCreatingUser(true)
       
-      // Get auth token from cookies
-      const token = document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1]
-      
+      const token = Cookies.get('auth_token')
+
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || ''
       const response = await fetch(`${gatewayUrl}/api/v1/identity/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           email: createUserForm.email,
@@ -654,7 +653,7 @@ export default function AdminPage() {
   }
 
   // Don't render anything if not superuser
-  if (!user?.is_superuser && user?.email !== 'superadmin@wildbox.com') {
+  if (!user?.is_superuser) {
     return null
   }
 

@@ -49,15 +49,8 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
   const { user } = useAuth()
   const pathname = usePathname()
 
-  // Debug logging
-  console.log('SettingsLayout - user:', user)
-  console.log('SettingsLayout - is_superuser:', user?.is_superuser)
-  console.log('SettingsLayout - user email:', user?.email)
-
   // Use base settings navigation only - admin is now in main nav
   const navigation = settingsNavigation
-
-  console.log('SettingsLayout - final navigation:', navigation.map(n => n.name))
 
   return (
     <MainLayout>
