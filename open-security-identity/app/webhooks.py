@@ -3,6 +3,7 @@ Stripe webhook handlers.
 """
 
 import json
+import logging
 from datetime import datetime
 from fastapi import APIRouter, Request, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,8 @@ from sqlalchemy import select
 from .database import get_db
 from .models import Subscription, Team, SubscriptionStatus, SubscriptionPlan
 from .billing import billing_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -60,10 +63,10 @@ async def handle_stripe_webhook(
         
         else:
             # Log unknown event type but don't fail
-            print(f"Unhandled webhook event type: {event_type}")
+            logger.info(f"Unhandled webhook event type: {event_type}")
     
     except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
-        print(f"Error processing webhook {event_type}: {str(e)}")
+        logger.error(f"Error processing webhook {event_type}: {str(e)}")
         raise HTTPException(status_code=500, detail="Webhook processing failed")
     
     return {"status": "success"}
@@ -76,13 +79,13 @@ async def handle_checkout_completed(session_data: dict, db: AsyncSession):
     subscription_id = session_data.get('subscription')
     
     if not all([team_id, plan_id_str, subscription_id]):
-        print("Missing required metadata in checkout session")
+        logger.warning("Missing required metadata in checkout session")
         return
     
     try:
         plan_id = SubscriptionPlan(plan_id_str)
     except ValueError:
-        print(f"Invalid plan_id in metadata: {plan_id_str}")
+        logger.warning(f"Invalid plan_id in metadata: {plan_id_str}")
         return
     
     # Update subscription in our database (use FOR UPDATE to prevent race conditions)
@@ -98,9 +101,9 @@ async def handle_checkout_completed(session_data: dict, db: AsyncSession):
         subscription.plan_id = plan_id
         subscription.status = SubscriptionStatus.ACTIVE
         await db.commit()
-        print(f"Subscription updated for team {team_id}: {plan_id} - {subscription_id}")
+        logger.info(f"Subscription updated for team {team_id}: {plan_id}")
     else:
-        print(f"Subscription not found for team {team_id}")
+        logger.warning(f"Subscription not found for team {team_id}")
 
 
 async def handle_subscription_created(subscription_data: dict, db: AsyncSession):

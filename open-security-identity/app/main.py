@@ -173,7 +173,6 @@ async def health_check():
     health_status = {
         "status": "healthy",
         "service": settings.app_name,
-        "version": settings.app_version,
         "timestamp": time.time(),
         "checks": {}
     }
@@ -256,7 +255,7 @@ async def get_metrics(request: Request):
             "service": "identity",
             "timestamp": time.time(),
             "metrics": {
-                "error": str(type(e).__name__),
+                "error": "unavailable",
                 "users_total": 0,
                 "teams_total": 0,
                 "api_keys_active": 0

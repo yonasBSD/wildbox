@@ -62,7 +62,7 @@ class WildboxConnector(BaseConnector):
                 "source": "responder"
             }
             
-            self.logger.info(f"Executing tool '{tool_name}' with params: {params}")
+            self.logger.info(f"Executing tool '{tool_name}'")
             response = self.client.post(url, json=payload)
             response.raise_for_status()
             

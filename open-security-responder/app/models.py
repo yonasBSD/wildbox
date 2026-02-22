@@ -173,12 +173,9 @@ class PlaybookListResponse(BaseModel):
 
 class HealthCheckResponse(BaseModel):
     """Health check response model"""
-    
+
     status: str
     timestamp: datetime
-    version: str
-    redis_connected: bool
-    playbooks_loaded: int
     
     class Config:
         json_encoders = {

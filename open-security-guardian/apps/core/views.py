@@ -29,7 +29,6 @@ class HealthCheckView(APIView):
         health_data = {
             'status': 'healthy',
             'timestamp': timezone.now().isoformat(),
-            'version': '1.0.0',
             'checks': {}
         }
         
@@ -40,8 +39,7 @@ class HealthCheckView(APIView):
             health_data['checks']['database'] = {'status': 'healthy'}
         except Exception as e:
             health_data['checks']['database'] = {
-                'status': 'unhealthy',
-                'error': str(e)
+                'status': 'unhealthy'
             }
             health_data['status'] = 'unhealthy'
         
@@ -52,32 +50,9 @@ class HealthCheckView(APIView):
             health_data['checks']['redis'] = {'status': 'healthy'}
         except Exception as e:
             health_data['checks']['redis'] = {
-                'status': 'unhealthy',
-                'error': str(e)
+                'status': 'unhealthy'
             }
             health_data['status'] = 'unhealthy'
-        
-        # System resources check
-        try:
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            
-            health_data['checks']['system'] = {
-                'status': 'healthy',
-                'memory_percent': memory.percent,
-                'disk_percent': disk.percent,
-                'cpu_percent': psutil.cpu_percent(interval=1)
-            }
-            
-            # Alert if resources are high
-            if memory.percent > 90 or disk.percent > 90:
-                health_data['checks']['system']['status'] = 'warning'
-                
-        except Exception as e:
-            health_data['checks']['system'] = {
-                'status': 'unhealthy',
-                'error': str(e)
-            }
         
         response_status = status.HTTP_200_OK if health_data['status'] == 'healthy' else status.HTTP_503_SERVICE_UNAVAILABLE
         return Response(health_data, status=response_status)
@@ -106,24 +81,10 @@ class SystemInfoView(APIView):
         system_info = {
             'application': {
                 'name': 'Open Security Guardian',
-                'version': '1.0.0',
                 'description': 'Proactive Vulnerability Management Platform'
-            },
-            'system': {
-                'python_version': f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-                'django_version': django.VERSION[:3],
-                'platform': platform.platform(),
-                'architecture': platform.architecture()[0],
-            },
-            'database': {
-                'engine': settings.DATABASES['default']['ENGINE'].split('.')[-1],
-                'name': settings.DATABASES['default']['NAME'],
-            },
-            'cache': {
-                'backend': settings.CACHES['default']['BACKEND'].split('.')[-1],
             }
         }
-        
+
         return Response(system_info)
 
 

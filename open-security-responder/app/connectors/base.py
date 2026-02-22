@@ -55,16 +55,20 @@ class BaseConnector(ABC):
         Raises:
             ConnectorError: If action fails or doesn't exist
         """
-        if not hasattr(self, action):
-            available_actions = list(self.get_available_actions().keys())
+        # Whitelist-based dispatch: only allow actions declared in get_available_actions()
+        available_actions = self.get_available_actions()
+        if action not in available_actions:
             raise ConnectorError(
                 f"Action '{action}' not found in connector '{self.name}'. "
-                f"Available actions: {available_actions}"
+                f"Available actions: {list(available_actions.keys())}"
             )
-        
+
         try:
             method = getattr(self, action)
-            self.logger.info(f"Executing action '{action}' with params: {params}")
+            # Sanitize params before logging to avoid leaking secrets
+            _sensitive_keys = {'api_key', 'password', 'secret', 'token', 'credential', 'auth'}
+            safe_params = {k: '***' if k.lower() in _sensitive_keys else v for k, v in params.items()}
+            self.logger.info(f"Executing action '{action}' with params: {safe_params}")
             result = method(**params)
             self.logger.info(f"Action '{action}' completed successfully")
             return result

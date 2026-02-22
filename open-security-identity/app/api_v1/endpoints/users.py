@@ -66,7 +66,8 @@ async def list_all_users(
     )
     
     if email_filter:
-        query = query.where(User.email.ilike(f"%{email_filter}%"))
+        escaped_filter = email_filter.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.where(User.email.ilike(f"%{escaped_filter}%", escape="\\"))
     
     if is_active is not None:
         query = query.where(User.is_active == is_active)

@@ -12,18 +12,20 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8001:8001"
+      - "127.0.0.1:8001:8001"
+    security_opt:
+      - no-new-privileges:true
     environment:
       - DATABASE_URL=${DATABASE_URL:?DATABASE_URL environment variable is required}
       - REDIS_URL=redis://redis:6379/0
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY environment variable is required}
-      - STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-      - STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
-      - STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
       # Auto-migration settings
       - CREATE_INITIAL_ADMIN=true
       - INITIAL_ADMIN_EMAIL=admin@wildbox.security
-      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD:-INSECURE-DEFAULT-PASSWORD}
+      - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD:?Set INITIAL_ADMIN_PASSWORD in .env}
     depends_on:
       - postgres
       - redis
@@ -36,10 +38,10 @@ services:
     image: postgres:15
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       - POSTGRES_DB=identity
     ports:
-      - "5434:5432"
+      - "127.0.0.1:5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -48,8 +50,8 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6384:6379"
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16
+      - "127.0.0.1:6384:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16 --requirepass ${REDIS_PASSWORD:-changeme}
     volumes:
       - redis_data:/data
 

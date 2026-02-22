@@ -12,12 +12,12 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6381:6379"
+      - "127.0.0.1:6381:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16 --requirepass ${REDIS_PASSWORD:-changeme}
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -32,9 +32,11 @@ services:
       - ./playbooks:/app/playbooks
       - ./logs:/app/logs
     ports:
-      - "8018:8018"
+      - "127.0.0.1:8018:8018"
+    security_opt:
+      - no-new-privileges:true
     environment:
-      - DEBUG=true
+      - DEBUG=${DEBUG:-false}
       # For standalone development (uses local Redis)
       - REDIS_URL=redis://redis:6379/0
       # For integration with main stack, use:
@@ -55,7 +57,7 @@ services:
       - ./playbooks:/app/playbooks
       - ./logs:/app/logs
     environment:
-      - DEBUG=true
+      - DEBUG=${DEBUG:-false}
       # For standalone development (uses local Redis)
       - REDIS_URL=redis://redis:6379/0
       # For integration with main stack, use:

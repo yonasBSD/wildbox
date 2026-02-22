@@ -217,10 +217,17 @@ def _ping_host(ip_address, timeout=1):
     """Check if host is reachable via ping"""
     import subprocess
     import platform
-    
+
+    # Validate IP address format before passing to subprocess
+    try:
+        ipaddress.ip_address(ip_address)
+    except ValueError:
+        logger.warning(f"Invalid IP address format: {ip_address}")
+        return False
+
     param = '-n' if platform.system().lower() == 'windows' else '-c'
     command = ['ping', param, '1', '-W' if platform.system().lower() == 'windows' else '-w', str(timeout * 1000), ip_address]
-    
+
     try:
         result = subprocess.run(command, capture_output=True, timeout=timeout + 2)
         return result.returncode == 0

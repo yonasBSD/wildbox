@@ -51,7 +51,7 @@ class ApiConnector(BaseConnector):
                 "timestamp": datetime.utcnow().isoformat()
             }
             
-            self.logger.info(f"Executing tool '{tool_name}' with params: {params}")
+            self.logger.info(f"Executing tool '{tool_name}'")
             response = self.client.post(url, json=payload)
             
             # Handle different response codes

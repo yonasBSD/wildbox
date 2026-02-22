@@ -22,7 +22,7 @@ from .config import settings
 from .playbook_parser import playbook_parser
 from .workflow_engine import start_execution, workflow_engine
 from .connectors.base import connector_registry
-from .auth import get_current_user, GatewayUser
+from .auth import get_current_user, require_role, GatewayUser
 
 # Configure logging
 logging.basicConfig(
@@ -134,10 +134,7 @@ async def health_check():
         
         return HealthCheckResponse(
             status="healthy" if redis_connected else "unhealthy",
-            timestamp=datetime.utcnow(),
-            version="0.1.6",
-            redis_connected=redis_connected,
-            playbooks_loaded=playbooks_loaded
+            timestamp=datetime.utcnow()
         )
     except (ValueError, KeyError, TypeError, ConnectionError, TimeoutError) as e:
         logger.error(f"Health check failed: {e}")
@@ -238,7 +235,7 @@ async def get_execution_status(run_id: str, current_user: GatewayUser = Depends(
 
 
 @app.post("/v1/playbooks/reload")
-async def reload_playbooks(current_user: GatewayUser = Depends(get_current_user)):
+async def reload_playbooks(current_user: GatewayUser = Depends(require_role("owner", "admin"))):
     """Reload playbooks from disk"""
     try:
         playbooks = playbook_parser.reload_playbooks()
