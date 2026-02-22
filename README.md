@@ -12,13 +12,13 @@
 
   <!-- Watch Demo Button -->
   <a href="https://youtu.be/BjuTF6yJ_JA">
-    <img src="https://img.shields.io/badge/▶️_Watch_Full_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo"/>
+    <img src="https://img.shields.io/badge/Watch_Full_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo"/>
   </a>
 </div>
 
-# 🛡️ Wildbox: The Open-Source Security Operations Suite
+# Wildbox
 
-Wildbox is your all-in-one, self-hosted open-source security platform. It unifies threat monitoring, analysis, and automated response in one place, giving you full control over your data and infrastructure.
+Self-hosted, open-source security operations platform. Threat monitoring, analysis, and automated response with full control over your data.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://docker.com)
@@ -36,28 +36,27 @@ Wildbox is your all-in-one, self-hosted open-source security platform. It unifie
 
 ## What is Wildbox?
 
-With Wildbox, you can:
-- 🔎 **Centralize** threat intelligence from over 50 sources.
-- 🛡️ **Monitor** your cloud infrastructure security (CSPM).
-- 🤖 **Automate** incident response with customizable playbooks.
-- 🖥️ **Manage** vulnerabilities through a single dashboard.
-- 📡 **Monitor** your endpoints for suspicious activity.
-- 🧠 **Leverage AI** for threat analysis and report generation.
+- Aggregate threat intelligence from 50+ sources
+- Monitor cloud infrastructure security posture (AWS, Azure, GCP)
+- Automate incident response with YAML playbooks
+- Track and manage vulnerabilities
+- Collect endpoint telemetry
+- Use LLMs for threat analysis and report generation
 
-## ✨ Features at a Glance
+## Features
 
-| Icon | Feature | Description |
-| :---: | :--- | :--- |
-| 🚪 | **Intelligent API Gateway** | A single, secure entry point with rate-limiting and centralized authentication. |
-| 🔐 | **Identity Management** | Manage users, teams, and access with RBAC (Role-Based Access Control) and JWT (JSON Web Tokens). |
-| ☁️ | **Cloud Security (CSPM)** | CSPM (Cloud Security Posture Management): Scan AWS, Azure, and GCP for misconfigurations and compliance. |
-| 🛡️ | **Vulnerability Management** | Scan, prioritize, and manage the lifecycle of vulnerabilities (CVE tracking). |
-| ⚡ | **Automated Response (SOAR)** | SOAR (Security Orchestration, Automation, and Response): Execute YAML-based playbooks to automate incident response. |
-| 🧠 | **AI Analysis** | Leverage LLMs (Large Language Models) to analyze threats and generate reports. |
+| Feature | Description |
+| :--- | :--- |
+| **API Gateway** | Single entry point with rate-limiting and authentication |
+| **Identity Management** | Users, teams, RBAC (Role-Based Access Control), JWT (JSON Web Tokens) |
+| **Cloud Security (CSPM)** | CSPM (Cloud Security Posture Management): scan AWS, Azure, GCP for misconfigurations |
+| **Vulnerability Management** | Scan, prioritize, and track vulnerabilities (CVE) |
+| **Automated Response (SOAR)** | SOAR (Security Orchestration, Automation, and Response): YAML-based playbooks |
+| **LLM Analysis** | LLM-based (Large Language Models) threat analysis and reporting |
 
-## 🏗️ Architecture
+## Architecture
 
-Wildbox follows a modern microservices architecture. Each component is an independent service that communicates through a unified API gateway.
+Microservices architecture. Each component is an independent service communicating through an API gateway.
 
 ```mermaid
 graph TD
@@ -66,39 +65,39 @@ graph TD
         CLI[CLI Tools]
         API_CLIENT[API Clients]
     end
-    
+
     subgraph "Gateway Layer"
-        GATEWAY[🚪 Security Gateway]
-        IDENTITY[🔐 Identity Service]
+        GATEWAY[Security Gateway]
+        IDENTITY[Identity Service]
     end
-    
+
     subgraph "Core Services"
-        API[🔧 Security API]
-        DATA[📊 Data Lake]
-        CSPM[☁️ CSPM Service]
-        GUARDIAN[🛡️ Guardian]
-        RESPONDER[⚡ Responder]
-        AGENTS[🧠 AI Agents]
-        SENSOR[📡 Sensor]
+        API[Security API]
+        DATA[Data Lake]
+        CSPM[CSPM Service]
+        GUARDIAN[Guardian]
+        RESPONDER[Responder]
+        AGENTS[AI Agents]
+        SENSOR[Sensor]
     end
-    
+
     subgraph "Data Layer"
         POSTGRES[(PostgreSQL)]
         REDIS[(Redis)]
         ELASTICSEARCH[(Elasticsearch)]
     end
-    
+
     subgraph "External Services"
         STRIPE[Stripe]
         OPENAI[OpenAI]
         FEEDS[Threat Feeds]
         CLOUD_APIS[Cloud APIs]
     end
-    
+
     UI --> GATEWAY
     CLI --> GATEWAY
     API_CLIENT --> GATEWAY
-    
+
     GATEWAY --> IDENTITY
     GATEWAY --> API
     GATEWAY --> DATA
@@ -106,23 +105,23 @@ graph TD
     GATEWAY --> GUARDIAN
     GATEWAY --> RESPONDER
     GATEWAY --> AGENTS
-    
+
     SENSOR --> GATEWAY
-    
+
     API --> POSTGRES
     DATA --> POSTGRES
     CSPM --> POSTGRES
     GUARDIAN --> POSTGRES
     RESPONDER --> POSTGRES
     AGENTS --> POSTGRES
-    
+
     GATEWAY --> REDIS
     API --> REDIS
     CSPM --> REDIS
     RESPONDER --> REDIS
-    
+
     DATA --> ELASTICSEARCH
-    
+
     IDENTITY --> STRIPE
     AGENTS --> OPENAI
     DATA --> FEEDS
@@ -135,22 +134,19 @@ graph TD
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
-- [⚡ Quick Start](#-quick-start)
-- [🎯 Platform Overview](#-platform-overview)
-- [🚀 Components](#-components)
-- [🛠️ Technology Stack](#️-technology-stack)
-- [🌟 Community & Roadmap](#-community--roadmap)
-- [🤝 Contributing](#-contributing)
-- [📖 Documentation](#-documentation)
-- [📄 License](#-license)
+- [Quick Start](#quick-start)
+- [Components](#components)
+- [Technology Stack](#technology-stack)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Documentation](#documentation)
+- [License](#license)
 
 ---
 
-## ⚡ Quick Start
-
-**Get Wildbox running with Docker Compose!**
+## Quick Start
 
 ### Prerequisites
 - Docker >= 20.10
@@ -158,7 +154,7 @@ graph TD
 - 8GB RAM minimum (16GB recommended)
 - Linux, macOS, or Windows with WSL2
 
-### Installation Steps
+### Installation
 
 ```bash
 # 1. Clone the repository
@@ -168,8 +164,7 @@ cd wildbox
 # 2. Create environment file from template
 cp .env.example .env
 
-# 3. Generate secure secrets for production
-# CRITICAL: Replace default secrets before deploying to production
+# 3. Generate secure secrets
 openssl rand -hex 32  # Use output for JWT_SECRET_KEY
 openssl rand -hex 32  # Use output for DATABASE_PASSWORD
 # Update .env file with generated secrets
@@ -178,12 +173,11 @@ openssl rand -hex 32  # Use output for DATABASE_PASSWORD
 docker-compose up -d
 
 # 5. Wait for services to initialize (2-3 minutes)
-# Watch logs to monitor startup progress
 docker-compose logs -f gateway identity
 
 # 6. Verify health status
-curl http://localhost/health  # Gateway health
-curl http://localhost:8001/health  # Identity service health
+curl http://localhost/health
+curl http://localhost:8001/health
 
 # 7. Access the platform
 # Dashboard: http://localhost:3000
@@ -195,16 +189,15 @@ curl http://localhost:8001/health  # Identity service health
 - **Email**: `admin@wildbox.security`
 - **Password**: `CHANGE-THIS-PASSWORD`
 
-**⚠️ SECURITY WARNING**: Change default credentials immediately after first login!
+**Change default credentials immediately after first login.**
 
 ### Next Steps
 1. Review **[Security Best Practices](SECURITY.md)**
 2. Configure **[Environment Variables](docs/guides/environment.md)**
 3. Read **[Deployment Guide](docs/guides/deployment.md)** for production setup
-4. Explore **[API Documentation](docs/api/)** to integrate with your tools
+4. Explore **[API Documentation](docs/api/)**
 
 ### Troubleshooting
-If services fail to start:
 - Check Docker logs: `docker-compose logs <service-name>`
 - Verify port availability: `netstat -tuln | grep -E '(8000|8001|3000|5432|6379)'`
 - Ensure sufficient disk space: `df -h`
@@ -212,183 +205,144 @@ If services fail to start:
 
 ---
 
-## 🎯 Platform Overview
+## Components
 
-Wildbox is a **complete security operations platform** built from the ground up with modularity, scalability, and extensibility at its core. Each component operates as an independent microservice while seamlessly integrating to provide a unified security experience.
+### **open-security-identity**
+Identity management, JWT authentication, API key management, subscription billing.
+FastAPI, PostgreSQL, Stripe, JWT.
 
----
+### **open-security-gateway**
+API gateway with routing, rate-limiting, and authentication.
+OpenResty (Nginx + Lua), Redis, Docker.
 
-## 🚀 Components
+### **open-security-tools**
+Unified API for 50+ security tools with dynamic discovery and execution.
+FastAPI, Redis, Docker.
 
-### 🔐 **open-security-identity**
-**The Authentication & Authorization Hub**
+### **open-security-data**
+Threat intelligence aggregation and serving.
+FastAPI, PostgreSQL, Elasticsearch, Redis.
 
-- **Purpose**: Centralized identity management, JWT authentication, API key management, and subscription billing
-- **Technology**: FastAPI, PostgreSQL, Stripe, JWT
+### **open-security-cspm** (In Development)
+Multi-cloud security posture management and compliance scanning.
+Not enabled in the default `docker-compose.yml`.
+FastAPI, Celery, Redis, Python cloud SDKs.
 
-### 🚪 **open-security-gateway** 
-**The Intelligent API Gateway**
+### **open-security-guardian**
+Vulnerability lifecycle management with risk-based prioritization.
+Django, PostgreSQL, Celery, Redis.
 
-- **Purpose**: Single entry point for all Wildbox services with advanced security and routing
-- **Technology**: OpenResty (Nginx + Lua), Redis, Docker
+### **open-security-sensor** (In Development)
+Endpoint monitoring and telemetry collection.
+Not enabled in the default `docker-compose.yml`.
+osquery, Python, HTTPS.
 
-### 🔧 **open-security-tools**
-**The Security Toolbox**
+### **open-security-responder**
+Incident response automation with YAML-based playbooks.
+FastAPI, Dramatiq, Redis.
 
-- **Purpose**: Unified API for 50+ security tools with dynamic discovery and execution
-- **Technology**: FastAPI, Redis, Docker
+### **open-security-automations**
+Node-based workflow automation for connecting services and APIs.
+n8n, Node.js, Docker.
 
-### 📊 **open-security-data**
-**The Intelligence Repository**
+### **open-security-agents**
+LLM-based security analysis and automation.
+FastAPI, Celery, LangChain, OpenAI.
 
-- **Purpose**: Centralized threat intelligence aggregation and serving
-- **Technology**: FastAPI, PostgreSQL, Elasticsearch, Redis
-
-### ☁️ **open-security-cspm** (In Development)
-**The Cloud Security Posture Manager**
-
-- **Purpose**: Multi-cloud security posture management and compliance scanning.
-- **Note**: This service is under active development and is not enabled in the default `docker-compose.yml`.
-- **Technology**: FastAPI, Celery, Redis, Python cloud SDKs
-
-### 🛡️ **open-security-guardian**
-**The Vulnerability Manager**
-
-- **Purpose**: Comprehensive vulnerability lifecycle management with risk-based prioritization
-- **Technology**: Django, PostgreSQL, Celery, Redis
-
-### 📡 **open-security-sensor** (In Development)
-**The Endpoint Agent**
-
-- **Purpose**: Lightweight endpoint monitoring and telemetry collection.
-- **Note**: This service is under active development and is not enabled in the default `docker-compose.yml`.
-- **Technology**: osquery, Python, HTTPS
-
-### ⚡ **open-security-responder**
-**The Automation Engine**
-
-- **Purpose**: SOAR platform for incident response automation using Python-based logic.
-- **Technology**: FastAPI, Dramatiq, Redis, YAML
-
-### 🤖 **open-security-automations**
-**The Workflow Automation Hub**
-
-- **Purpose**: Visual, node-based workflow automation for connecting services and APIs.
-- **Technology**: n8n, Node.js, Docker
-
-### 🧠 **open-security-agents**
-**The AI Brain**
-
-- **Purpose**: AI-powered security analysis and automation
-- **Technology**: FastAPI, Celery, LangChain, OpenAI
-
-### 🖥️ **open-security-dashboard**
-**The Command Center**
-
-- **Purpose**: Unified web interface for the entire security platform
-- **Technology**: Next.js, TypeScript, Tailwind CSS, TanStack Query
+### **open-security-dashboard**
+Web interface for the platform.
+Next.js, TypeScript, Tailwind CSS, TanStack Query.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
-### 🖥️ **Frontend Technologies**
-- **Next.js 14**: React framework with App Router and Server Components
-- **TypeScript 5.0+**: Type-safe JavaScript with modern features
-- **Tailwind CSS**: Utility-first CSS framework for rapid styling
-- **Shadcn/ui**: High-quality React components built on Radix UI
-- **TanStack Query**: Powerful data synchronization for React
-- **Recharts**: Composable charting library for React
-- **Lucide React**: Beautiful and customizable icon library
+### Frontend
+- **Next.js 14** - React framework with App Router
+- **TypeScript 5.0+** - Type-safe JavaScript
+- **Tailwind CSS** - Utility-first CSS framework
+- **Shadcn/ui** - React components built on Radix UI
+- **TanStack Query** - Data synchronization for React
+- **Recharts** - Charting library for React
 
-### ⚙️ **Backend Technologies**
-- **FastAPI**: Modern, fast web framework for building APIs with Python
-- **Django 5.0**: High-level Python web framework for rapid development
-- **OpenResty**: High-performance web platform with Nginx and LuaJIT scripting
-- **PostgreSQL 15**: Advanced open-source relational database
-- **Redis 7**: In-memory data structure store for caching and queues
-- **SQLAlchemy**: Python SQL toolkit and Object-Relational Mapping
-- **Alembic**: Lightweight database migration tool for SQLAlchemy
-- **Celery**: Distributed task queue for background processing
+### Backend
+- **FastAPI** - Python async web framework
+- **Django 4.2 LTS** - Python web framework
+- **OpenResty** - Nginx + LuaJIT
+- **PostgreSQL 15** - Relational database
+- **Redis 7** - In-memory data store for caching and queues
+- **SQLAlchemy** - Python ORM
+- **Alembic** - Database migrations
+- **Celery** - Distributed task queue
 
-### 🧠 **AI & Machine Learning**
-- **OpenAI GPT-4o**: Advanced language model for intelligent analysis
-- **LangChain**: Framework for developing LLM-powered applications
-- **Pydantic**: Data validation using Python type annotations
-- **Jinja2**: Modern and designer-friendly templating language
-- **NLTK**: Natural Language Toolkit for text processing
-- **Scikit-learn**: Machine learning library for predictive analysis
+### AI
+- **OpenAI API** - LLM integration for threat analysis
+- **LangChain** - LLM application framework
+- **Pydantic** - Data validation
+- **NLTK** - Natural language processing
+- **Scikit-learn** - Machine learning
 
-### 🔧 **DevOps & Infrastructure**
-- **Docker**: Containerization platform for consistent deployments
-- **Docker Compose**: Multi-container Docker application orchestration
-- **Nginx**: High-performance web server and reverse proxy
-- **Prometheus**: Monitoring system and time series database
-- **Grafana**: Analytics and interactive visualization platform
-- **GitHub Actions**: CI/CD platform for automated testing and deployment
+### Infrastructure
+- **Docker / Docker Compose** - Containerization and orchestration
+- **Nginx** - Reverse proxy
+- **Prometheus** - Metrics and monitoring
+- **Grafana** - Visualization
+- **GitHub Actions** - CI/CD
 
-### 🛡️ **Security Technologies**
-- **JWT (JSON Web Tokens)**: Secure authentication token standard
-- **bcrypt**: Password hashing function for secure storage
-- **python-jose**: JavaScript Object Signing and Encryption for Python
-- **cryptography**: Cryptographic recipes and primitives for Python
-- **osquery**: SQL-based host monitoring and endpoint visibility
-- **TLS 1.3**: Latest Transport Layer Security protocol
+### Security
+- **JWT** - Authentication tokens
+- **bcrypt** - Password hashing
+- **cryptography** - Cryptographic primitives
+- **osquery** - Endpoint monitoring
+- **TLS 1.3** - Transport encryption
 
 ---
 
-## 🚀 Community & Roadmap
+## Roadmap
 
-**Current Status: Security-Hardened (v0.5.4)**
+**Current version: v0.5.4 (Security-Hardened)**
 
-Wildbox has undergone comprehensive security hardening including vulnerability remediation, dependency updates, and infrastructure security improvements.
+**Phase 1: Stabilization** - Done
+- Core security controls, documentation, CI/CD
 
-### 📋 Roadmap
+**Phase 2: Security Hardening** - Done
+- 3-round security audit, 35 issues fixed
+- 96/98 Dependabot alerts resolved
+- JWT revocation, account lockout, network segmentation
+- Docker network isolation, CI/CD secrets, Prometheus alerting
 
-**Phase 1: Evaluation & Stabilization** ✅
-- ✅ Core security controls implemented
-- ✅ Comprehensive documentation created
-- ✅ Community feedback and issue resolution
-
-**Phase 2: Security Hardening** ✅ (Current)
-- ✅ 3-round security audit with 35 issues identified and fixed
-- ✅ 96/98 Dependabot vulnerability alerts resolved
-- ✅ JWT token revocation, account lockout, network segmentation
-- ✅ Infrastructure security: Docker network isolation, CI/CD secrets, Prometheus alerting
-
-**Phase 3: Feature Expansion** (Based on Community Demand)
-- 📋 Additional cloud provider integrations
-- 📋 Extended SOAR automation capabilities
-- 📋 Advanced threat intelligence integration
-- 📋 Next.js 16 migration (required for remaining 2 CVEs)
+**Phase 3: Feature Expansion** - Planned
+- Additional cloud provider integrations
+- Extended SOAR capabilities
+- Next.js 16 migration
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions from the security community! Please see our **[Contributing Guide](CONTRIBUTING.md)** for details on how to get started, our development process, and what we are looking for.
+See **[Contributing Guide](CONTRIBUTING.md)** for development setup and guidelines.
 
 ---
 
-## 📖 Documentation
+## Documentation
 
-> 🌐 **Complete documentation available online**: Visit **[Wildbox Documentation Site](https://www.wildbox.io)** for the full documentation with organized guides, security reports, and deployment procedures.
+Full documentation: **[wildbox.io](https://www.wildbox.io)**
 
-For more details, see the following documents:
-- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Comprehensive deployment guide
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Deployment guide
 - **[SECURITY.md](SECURITY.md)** - Security policy and vulnerability reporting
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history
 
 ---
 
-## 📄 License
+## License
 
-Wildbox is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+MIT License. See [LICENSE](LICENSE).
 
 ---
 
-## 📞 Support & Contact
+## Support
 
-- **Issues**: Report bugs on [GitHub Issues](https://github.com/fabriziosalmi/wildbox/issues).
-- **Discussions**: Join the [GitHub Discussions](https://github.com/fabriziosalmi/wildbox/discussions).
-- **Security**: Email fabrizio.salmi@gmail.com for security vulnerabilities.
+- **Issues**: [GitHub Issues](https://github.com/fabriziosalmi/wildbox/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fabriziosalmi/wildbox/discussions)
+- **Security**: fabrizio.salmi@gmail.com
