@@ -79,12 +79,6 @@ function _M.extract_auth_token()
         return api_key, "api_key"
     end
     
-    -- Try query parameter (less secure, for specific endpoints only)
-    local args = ngx.req.get_uri_args()
-    if args.token then
-        return args.token, "query"
-    end
-    
     return nil, "no_token"
 end
 

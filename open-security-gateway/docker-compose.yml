@@ -14,8 +14,10 @@ services:
     container_name: wildbox-gateway
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - ./nginx:/etc/nginx:ro
       - ./logs:/var/log/nginx
@@ -27,7 +29,7 @@ services:
       - GATEWAY_LOG_LEVEL=${GATEWAY_LOG_LEVEL:-info}
       # Authentication service configuration (Blueprint Phase 1 requirements)
       - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://open-security-identity:8000}
-      - GATEWAY_INTERNAL_SECRET=${GATEWAY_INTERNAL_SECRET:-changeme-in-production}
+      - GATEWAY_INTERNAL_SECRET=${GATEWAY_INTERNAL_SECRET:?Set GATEWAY_INTERNAL_SECRET in .env}
       - AUTH_CACHE_TTL=${AUTH_CACHE_TTL:-300}
       - GATEWAY_DEBUG=${GATEWAY_DEBUG:-false}
     networks:
@@ -47,13 +49,13 @@ services:
     image: redis:7-alpine
     container_name: wildbox-gateway-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16 --requirepass ${REDIS_PASSWORD:-changeme}
     volumes:
       - redis_data:/data
     networks:
       - wildbox-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
       interval: 30s
       timeout: 5s
       retries: 3

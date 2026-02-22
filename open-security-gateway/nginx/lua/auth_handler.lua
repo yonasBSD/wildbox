@@ -41,7 +41,7 @@ local function get_config()
     if not config_json then
         -- Build config from environment variables (Blueprint security requirement)
         local config = {
-            identity_service_url = os.getenv("IDENTITY_SERVICE_URL") or "http://open-security-identity:8000",
+            identity_service_url = os.getenv("IDENTITY_SERVICE_URL") or "http://open-security-identity:8001",
             gateway_secret = os.getenv("GATEWAY_INTERNAL_SECRET") or ngx.log(ngx.ERR, "GATEWAY_INTERNAL_SECRET not set"),
             cache_ttl = tonumber(os.getenv("AUTH_CACHE_TTL")) or CACHE_TTL,
             debug_mode = os.getenv("GATEWAY_DEBUG") == "true"
@@ -357,7 +357,7 @@ function _M.authenticate()
     -- Extract authentication token
     local auth_header = ngx.var.http_authorization
     local token, token_type = utils.extract_auth_token(auth_header)
-    
+
     if not token then
         utils.log("debug", "No authentication token provided")
         ngx.status = ngx.HTTP_UNAUTHORIZED
@@ -369,7 +369,19 @@ function _M.authenticate()
         }))
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
-    
+
+    -- Token length validation: reject suspiciously long tokens
+    if #token > 4096 then
+        utils.log("warn", "Token exceeds maximum length", {length = #token})
+        ngx.status = ngx.HTTP_BAD_REQUEST
+        ngx.header.content_type = "application/json"
+        ngx.say(utils.json_encode({
+            error = "invalid_token",
+            message = "Authentication token exceeds maximum allowed length"
+        }))
+        ngx.exit(ngx.HTTP_BAD_REQUEST)
+    end
+
     -- Generate cache key
     local cache_key = utils.generate_auth_cache_key(token, token_type)
     
