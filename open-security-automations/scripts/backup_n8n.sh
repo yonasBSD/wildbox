@@ -102,13 +102,10 @@ fi
 echo -e "${BLUE}📦 Creating full backup archive...${NC}"
 full_backup_file="$BACKUP_DIR/full/wildbox_automations_full_backup_$timestamp.tar.gz"
 
-# Include configuration files in full backup
+# Include configuration files in full backup (NEVER include .env -- it contains secrets)
 config_files=()
 if [ -f "$(dirname "$0")/../docker-compose.yml" ]; then
     config_files+=("docker-compose.yml")
-fi
-if [ -f "$(dirname "$0")/../.env" ]; then
-    config_files+=(".env")
 fi
 
 # Create full backup

@@ -1,0 +1,21 @@
+# n8n data (contains encryption keys, credentials, database)
+n8n-data/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Backups (may contain secrets)
+backups/
+
+# Logs
+*.log
+
+# SQLite databases
+*.sqlite
+*.sqlite-journal
+
+# OS files
+.DS_Store
+Thumbs.db

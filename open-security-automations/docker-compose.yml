@@ -12,7 +12,7 @@ services:
     container_name: wildbox-automations-n8n
     restart: unless-stopped
     ports:
-      - "5678:5678"
+      - "127.0.0.1:5678:5678"
     environment:
       # n8n Configuration
       - N8N_BASIC_AUTH_ACTIVE=true
@@ -32,8 +32,8 @@ services:
       - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
       
       # Security Settings
-      - N8N_SECURE_COOKIE=false
-      - N8N_METRICS=true
+      - N8N_SECURE_COOKIE=true
+      - N8N_METRICS=false
       
       # Wildbox Integration Environment Variables
       - WILDBOX_API_GATEWAY_URL=${WILDBOX_API_GATEWAY_URL:-http://wildbox-gateway:8000}
@@ -57,9 +57,12 @@ services:
       # Workflow backups
       - ./workflows:/home/node/.n8n/workflows
       
+    security_opt:
+      - no-new-privileges:true
+
     networks:
       - wildbox-net
-      
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.n8n.rule=Host(`automations.wildbox.local`)"
@@ -79,11 +82,9 @@ services:
     image: redis:7-alpine
     container_name: wildbox-automations-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --databases 16 --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     networks:
       - wildbox-net
     healthcheck:
@@ -101,7 +102,7 @@ services:
   #   environment:
   #     - POSTGRES_DB=n8n
   #     - POSTGRES_USER=n8n
-  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-n8n_password}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
   #   volumes:
   #     - postgres_data:/var/lib/postgresql/data
   #   networks:

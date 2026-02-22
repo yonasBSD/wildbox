@@ -9,7 +9,7 @@ set -e
 N8N_HOST="${N8N_HOST:-localhost}"
 N8N_PORT="${N8N_PORT:-5678}"
 N8N_AUTH_USER="${N8N_BASIC_AUTH_USER:-admin}"
-N8N_AUTH_PASS="${N8N_BASIC_AUTH_PASSWORD:-wildbox_n8n_2025}"
+N8N_AUTH_PASS="${N8N_BASIC_AUTH_PASSWORD:?N8N_BASIC_AUTH_PASSWORD must be set}"
 WORKFLOWS_DIR="$(dirname "$0")/../workflows"
 
 # Colors for output
